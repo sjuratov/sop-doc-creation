@@ -1,0 +1,4 @@
+# Application name
+name: sop-doc-creation
+infra:
+  provider: bicep
