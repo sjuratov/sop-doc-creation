@@ -27,9 +27,8 @@ param location string
 @description('Name of the resource group. Leave blank to use default naming conventions.')
 param resourceGroupName string = ''
 
-@description('Name of the Function App resource. Leave blank to use default naming conventions.')
+@description('Name of the Storage resource. Leave blank to use default naming conventions.')
 param storageAccountName string = ''
-
 
 @description('Tags to be applied to resources.')
 param tags object = { 'azd-env-name': environmentName }
@@ -46,13 +45,15 @@ resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   tags: tags
 }
 
+
+// ------------------------
+// [ Array of OpenAI Model deployments ]
 param aoaiGpt4ModelName string= 'gpt-4o'
 param aoaiGpt4ModelVersion string = '2024-05-13'
 
 param aoaiEmbeddingsName string = 'text-embedding-ada-002'
 param aoaiEmbeddingsVersion string  = '2'
 
-// Array of deployments
 param deployments array = [
   {
     name: '${aoaiGpt4ModelName}-${aoaiGpt4ModelVersion}'
@@ -80,7 +81,7 @@ param deployments array = [
   }
 ]
 
-module openAi 'modules/ai/cognitiveservices.bicep' = {
+module aiServices 'modules/ai/cognitiveservices.bicep' = {
   name: 'aiServices'
   scope: resourceGroup
   params: {
@@ -90,31 +91,35 @@ module openAi 'modules/ai/cognitiveservices.bicep' = {
   }
 }
 
-// module storageAccount './modules/storage/storageaccount.bicep' = {
-//   name: 'storage'
-//   scope: resourceGroup
-//   params: {
-//     location: location
-//     tags: tags
-//     storageAccountName: !empty(storageAccountName) ? storageAccountName : 'funcusage${resourceToken}'
-//     functionAppManagedIdentityName: usageManagedIdentity.outputs.managedIdentityName
-//     vNetName: useExistingVnet ? vnetExisting.outputs.vnetName : vnet.outputs.vnetName
-//     privateEndpointSubnetName: useExistingVnet
-//       ? vnetExisting.outputs.privateEndpointSubnetName
-//       : vnet.outputs.privateEndpointSubnetName
-//     storageBlobDnsZoneName: storageBlobPrivateDnsZoneName
-//     storageFileDnsZoneName: storageFilePrivateDnsZoneName
-//     storageBlobPrivateEndpointName: '${abbrs.storageStorageAccounts}blob-pe-${resourceToken}'
-//     storageFilePrivateEndpointName: '${abbrs.storageStorageAccounts}file-pe-${resourceToken}'
-//     functionContentShareName: functionContentShareName
-//     vNetRG: useExistingVnet ? vnetExisting.outputs.vnetRG : vnet.outputs.vnetRG
-//     dnsZoneRG: !empty(dnsZoneRG) ? dnsZoneRG : resourceGroup.name
-//     dnsSubscriptionId: !empty(dnsSubscriptionId) ? dnsSubscriptionId : subscription().subscriptionId
-//   }
-//   dependsOn: [
-//     vnet
-//     vnetExisting
-//   ]
-// }
-// output APIM_NAME string = apim.outputs.apimName
-// output APIM_AOI_PATH string = apim.outputs.apimOpenaiApiPath
+module storageAccount './modules/storage/storageaccount.bicep' = {
+  name: 'storage'
+  scope: resourceGroup
+  params: {
+    location: location
+    tags: tags
+    storageAccountName: !empty(storageAccountName) ? storageAccountName : 'stor${resourceToken}'
+  }
+}
+
+module monitoring 'modules/monitoring/monitor.bicep' = {
+  name: 'monitor'
+  scope: resourceGroup
+  params: {
+    logAnalyticsName: '${abbrs.operationalInsightsWorkspaces}${resourceToken}'
+    resourceToken: resourceToken
+    tags: tags
+  }
+}
+
+module functionApp 'modules/functionapp/functionapp.bicep' = {
+  name: 'functionApp'
+  scope: resourceGroup
+  params: {
+    storageAccountName: storageAccount.outputs.storageAccountName
+    functionAppName: 'funcapp-${resourceToken}'
+    appInsightsConnectionString: monitoring.outputs.appInsightsConnectionString
+    tags: tags
+  }
+}
+
+// output AOAI_ENDPOINT string = aiServices.outputs.aoaiEndpoint

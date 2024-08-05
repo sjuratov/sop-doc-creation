@@ -31,4 +31,17 @@ resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01
   }
 }]
 
-output openAiName string = account.name
+resource speechService 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
+  name: 'speech-${resourceToken}'
+  location: location
+  kind: 'SpeechServices'
+  sku: {
+    name: 'S0'
+  } 
+  properties: {
+    publicNetworkAccess: 'Enabled'
+  }
+  tags: union(tags, { 'azd-service-name': 'speech-${resourceToken}' })
+}
+
+output aoaiEndpoint string = account.properties.endpoint
