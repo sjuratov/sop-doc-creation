@@ -1,9 +1,12 @@
 import os
 import time
 import streamlit as st
-from modules.helpers import *
+import sys
 from urllib.parse import urlparse
 from dotenv import find_dotenv, load_dotenv
+
+sys.path.append('../')
+from modules.helpers import *
 
 load_dotenv(find_dotenv())
 
@@ -86,6 +89,72 @@ def main():
         st.markdown(f"Last Modified: {formatted_time}")
         st.markdown("#### Waveplot of audio file")
         display_amplitude(audio_file)
+
+        # Transcribe audio file using Azure Speech to Text
+        st.divider()
+        st.markdown("### Extract text from audio file")
+        st.info("Transcribing audio file")
+        start = time.time()
+        transcript, confidence, words = azure_text_to_speech(audio_file, language)
+        elapsed = time.time() - start
+        st.markdown("Completed in " + time.strftime(
+            "%H:%M:%S.{}".format(str(elapsed % 1)[2:])[:15], time.gmtime(elapsed)))
+        transcript_text = ' '.join(transcript)
+        st.markdown(f"Transcript text lenght: {len(transcript_text)}")
+        st.markdown(f"Transcript: {transcript_text}")
+
+        st.markdown("#### Text transcript with confidence level")
+        df = pd.DataFrame(words, columns=["Word", "Offset", "Duration", "Confidence"])
+        df["Offset_in_secs"] = df["Offset"] / 10_000_000
+        df["Duration_in_secs"] = df["Duration"] / 10_000_000
+        st.dataframe(df, use_container_width=True)
+
+        transcript_file = os.path.join(
+            RESULTS_DIR,
+            os.path.splitext(os.path.basename(video_file.name))[0] + ".txt"
+            )
+
+        df.to_csv(transcript_file)
+        st.info(f"Transcript saved to {transcript_file}")
+
+        # Create SOP structure using Azure OpenAI
+        st.divider()
+        st.markdown("### Create SOP structure using Azure OpenAI")
+        st.info("Processing transcribed text ...")
+        sop_text = df.to_json(orient="records")
+        prompt = """
+        Describe the main steps of this checklist document.
+        Extract all the specific steps. Please be precise and concise.
+        Output is:
+        Step: step number
+        Title: Generate a simple summary of the step
+        Summary: Generate a summary of the step in 2 or 3 lines
+        Keywords: generate some keywords to explain the step
+        Offset: offset
+        Offset_in_secs: offset in seconds
+        """
+
+        start = time.time()
+        completion = ask_gpt4o(prompt, sop_text, model)
+        elapsed = time.time() - start
+        st.markdown("Completed in " + time.strftime(
+            "%H:%M:%S.{}".format(str(elapsed % 1)[2:])[:15], time.gmtime(elapsed)))
+        #st.markdown(f"Completion: {completion}")
+        df = pd.DataFrame.from_dict(json.loads(completion)['steps'])
+        st.dataframe(df, use_container_width=True)
+
+        # Create SOP in Microsoft Word format
+        st.divider()
+        st.markdown("### Create SOP in Microsoft Word format")
+        st.info("Processing transcribed text and video ...")
+        json_data = json.loads(completion)["steps"]
+        start = time.time()
+        docx_file = checklist_docx_file(video_file.name, json_data, RESULTS_DIR, model, 1)
+        elapsed = time.time() - start
+        st.markdown("Completed in " + time.strftime(
+            "%H:%M:%S.{}".format(str(elapsed % 1)[2:])[:15], time.gmtime(elapsed)))
+        st.info(f"SOP saved to {docx_file}")
+        
 
 if __name__ == "__main__":
     main()

@@ -15,7 +15,6 @@ import time
 from docx import Document
 from docx.shared import Inches
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from dotenv import load_dotenv
 from io import BytesIO
 from IPython.display import Audio, Video, FileLink, Image
 from mimetypes import guess_type
@@ -28,6 +27,18 @@ from pytubefix import YouTube
 from pytubefix.cli import on_progress
 
 import streamlit as st
+
+from dotenv import find_dotenv, load_dotenv
+
+load_dotenv("../../.env")
+
+# Azure Speech services
+AZURE_SPEECH_KEY = os.getenv("AZURE_SPEECH_KEY")
+AZURE_SPEECH_REGION = os.getenv("AZURE_SPEECH_REGION")
+
+# Azure OpenAI
+AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
+AZURE_OPENAI_KEY = os.getenv("AZURE_OPENAI_KEY")
 
 def download_file(url, path):
     #import requests
@@ -373,7 +384,7 @@ def text_search(text):
 
     return df_res, offset_secs, duration_secs
 
-def ask_gpt4o(prompt):
+def ask_gpt4o(prompt, sop_text, model):
     """
     Sends a prompt to the GPT-4 model via Azure OpenAI and returns the response.
 
@@ -460,7 +471,7 @@ def get_video_info(video_file):
     
     return duration, total_frames, fps
 
-def get_video_frame(video_file, offset_in_secs):
+def get_video_frame(video_file, offset_in_secs, FRAMES_DIR):
     """
     Extracts a frame from a video file at a specified offset in seconds and saves it as an image file.
 
@@ -534,7 +545,7 @@ def local_image_to_data_url(image_path):
 
     return f"data:{mime_type};base64,{base64_encoded_data}"
 
-def gpt4o_imagefile(image_file, prompt):
+def gpt4o_imagefile(image_file, prompt, model):
     """
     Analyze an image file using Azure OpenAI's GPT-4 model.
 
@@ -581,7 +592,7 @@ def gpt4o_imagefile(image_file, prompt):
 
     return response
 
-def checklist_docx_file(video_file, json_data, nb_images_per_step=3):
+def checklist_docx_file(video_file, json_data, RESULTS_DIR, model, nb_images_per_step=3):
     """
     Generates a DOCX file containing a checklist based on video frames and provided JSON data.
 
@@ -601,6 +612,8 @@ def checklist_docx_file(video_file, json_data, nb_images_per_step=3):
     print("Generating checklist file...")
     
     image_size = 5 # size of each image that will be inserted
+
+    FRAMES_DIR = f"{RESULTS_DIR}/frames"
     
     # Filename
     docx_file = os.path.join(
@@ -645,17 +658,18 @@ def checklist_docx_file(video_file, json_data, nb_images_per_step=3):
             # Retrieve the frame and add it to the document
             frame_file = get_video_frame(
                 video_file,
-                int(offset_secs) + img_idx * 3)
+                int(offset_secs) + img_idx * 3,
+                FRAMES_DIR)            
             doc.add_picture(frame_file, width=Inches(image_size))
         
             # Adding the automatic caption of the frame
-            caption_image = gpt4o_imagefile(frame_file, "Generate a detailled caption of this image.")
+            caption_image = gpt4o_imagefile(frame_file, "Generate a detailled caption of this image.", model)
             caption = caption_image.choices[0].message.content
             doc.add_paragraph(f"- Automatic frame caption: {caption}")
             
             # OCR of the frame
-            ocr_image = gpt4o_imagefile(frame_file, "Print all the extracted text from this image separated with a comma")
-            ocr = results.choices[0].message.content
+            ocr_image = gpt4o_imagefile(frame_file, "Print all the extracted text from this image separated with a comma", model)
+            ocr = ocr_image.choices[0].message.content
             doc.add_paragraph(f"- Automatic OCR: {ocr}")
             
             # Deleting the frame file (optional)
