@@ -3,3 +3,5 @@ results/
 video/
 .env
 .idea/
+__pycache__/
+data/
