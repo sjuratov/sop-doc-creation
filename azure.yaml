@@ -1,0 +1,9 @@
+# Application name
+name: sop-doc-creation
+infra:
+  provider: bicep
+services:
+  blobTriggerProcessor:
+    project: ./src/blob-trigger
+    language: python
+    host: function
