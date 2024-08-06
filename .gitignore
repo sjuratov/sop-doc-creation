@@ -2,3 +2,5 @@
 results/
 video/
 .env
+__pycache__/
+data/

@@ -11,3 +11,5 @@ ipython
 moviepy
 pydub
 wordcloud
+streamlit
+pytubefix
