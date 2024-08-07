@@ -1,5 +1,6 @@
 import os
 import time
+import json
 import streamlit as st
 import sys
 from urllib.parse import urlparse
@@ -7,8 +8,6 @@ from dotenv import find_dotenv, load_dotenv
 
 sys.path.append('../')
 from modules.helpers import *
-
-load_dotenv(find_dotenv())
 
 def main():
 
@@ -24,8 +23,10 @@ def main():
     # Language in the video for Azure Speech to Text
     language = "en-US"
 
-    # Azure OpenAI GPT deployed model (choose your gpt4o deployed model name)
-    model = "gpt-4o"
+    # Azure OpenAI GPT deployed model 
+    # Defined in infra/main.bicep as '<model>-<version>'
+    # Shall be defined in .env file?
+    model = "gpt-4o-2024-05-13"
 
     st.title("SOP Document Generator")
 

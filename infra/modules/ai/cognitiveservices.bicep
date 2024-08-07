@@ -45,3 +45,7 @@ resource speechService 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
 }
 
 output aoaiEndpoint string = account.properties.endpoint
+output aoaiKey1 string = '${account.listKeys().key1}'
+
+output speechRegion string = location
+output speechKey string = '${speechService.listKeys().key1}'
