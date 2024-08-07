@@ -18,6 +18,8 @@ The env variables are read from the azd config file located at:
 
 ```.azure/<env_name>/.env```
 
+If azd has not been executed, the application will try to source the standard .env file.
+
 ## Azure Speech services
 
 AZURE_SPEECH_KEY
