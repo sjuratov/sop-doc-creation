@@ -123,6 +123,7 @@ module functionApp 'modules/functionapp/functionapp.bicep' = {
 }
 
 output AZURE_OPENAI_ENDPOINT string = aiServices.outputs.aoaiEndpoint
-output AZURE_OPENAI_KEY      string = aiServices.outputs.aoaiKey1
-output AZURE_SPEECH_KEY      string = aiServices.outputs.speechKey
+output AZURE_OPENAI_ACCOUNT_NAME string = aiServices.outputs.aoaiName
+
 output AZURE_SPEECH_REGION   string = aiServices.outputs.speechRegion
+output AZURE_SPEECH_ACCOUNT_NAME  string = aiServices.outputs.speechName
