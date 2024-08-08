@@ -48,9 +48,9 @@ else:
 
 # If azd config file not found, use the standard .env file
 if default_environment:
-    load_dotenv(f"../../.azure/{default_environment}/.env")
+    load_dotenv(f"../../.azure/{default_environment}/.env",override=True)
 else:
-    load_dotenv(find_dotenv())
+    load_dotenv(find_dotenv(),override=True)
 
 # Azure Speech services
 AZURE_SPEECH_KEY = os.getenv("AZURE_SPEECH_KEY")
