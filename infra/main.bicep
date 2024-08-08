@@ -56,7 +56,7 @@ param aoaiEmbeddingsVersion string  = '2'
 
 param deployments array = [
   {
-    name: '${aoaiGpt4ModelName}-${aoaiGpt4ModelVersion}'
+    name:  '${aoaiGpt4ModelName}-${aoaiGpt4ModelVersion}'
     model: {
       format: 'OpenAI'
       name: aoaiGpt4ModelName
@@ -122,4 +122,8 @@ module functionApp 'modules/functionapp/functionapp.bicep' = {
   }
 }
 
-// output AOAI_ENDPOINT string = aiServices.outputs.aoaiEndpoint
+output AZURE_OPENAI_ENDPOINT string = aiServices.outputs.aoaiEndpoint
+output AZURE_OPENAI_ACCOUNT_NAME string = aiServices.outputs.aoaiName
+
+output AZURE_SPEECH_REGION   string = aiServices.outputs.speechRegion
+output AZURE_SPEECH_ACCOUNT_NAME  string = aiServices.outputs.speechName

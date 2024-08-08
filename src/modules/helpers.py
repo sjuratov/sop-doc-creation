@@ -30,7 +30,27 @@ import streamlit as st
 
 from dotenv import find_dotenv, load_dotenv
 
-load_dotenv("../../.env")
+# Checking if the azd config file exists.
+# If so, use it to source env variables
+config_path = '../../.azure/config.json'
+default_environment = None
+
+if os.path.exists(config_path):
+    with open(config_path, 'r') as config_file:
+        config_data = json.load(config_file)
+        default_environment = config_data.get('defaultEnvironment')
+        if default_environment:
+            print(f"Default Environment used: {default_environment}")
+        else:
+            print("defaultEnvironment parameter not found in the config file.")
+else:
+    print(f"Config file {config_path} does not exist. Not local execuriton or 'azd up' has not been executed.")
+
+# If azd config file not found, use the standard .env file
+if default_environment:
+    load_dotenv(f"../../.azure/{default_environment}/.env",override=True)
+else:
+    load_dotenv(find_dotenv(),override=True)
 
 # Azure Speech services
 AZURE_SPEECH_KEY = os.getenv("AZURE_SPEECH_KEY")
@@ -39,6 +59,8 @@ AZURE_SPEECH_REGION = os.getenv("AZURE_SPEECH_REGION")
 # Azure OpenAI
 AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
 AZURE_OPENAI_KEY = os.getenv("AZURE_OPENAI_KEY")
+
+print(f"Azure OpenAI endpoint (helpers): {AZURE_OPENAI_ENDPOINT}")
 
 def download_file(url, path):
     #import requests
@@ -399,9 +421,13 @@ def ask_gpt4o(prompt, sop_text, model):
     """
     
     # Azure OpenAI client
-    client = AzureOpenAI(azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-                         api_key=os.getenv("AZURE_OPENAI_KEY"),
+    client = AzureOpenAI(azure_endpoint=AZURE_OPENAI_ENDPOINT,
+                         api_key=AZURE_OPENAI_KEY,
                          api_version="2024-02-01")
+    
+    # client = AzureOpenAI(azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+    #                      api_key=os.getenv("AZURE_OPENAI_KEY"),
+    #                      api_version="2024-02-01")
 
     # Response with the json object property
     response = client.chat.completions.create(

@@ -18,7 +18,7 @@ resource account 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
     // customSubDomainName: toLower(name)
     publicNetworkAccess: 'Enabled'
   }
-  tags: union(tags, { 'azd-service-name': 'aoai-${resourceToken}' })
+  tags: union(tags, { 'azd-service-name': 'aoai-${tags['azd-env-name']}' })
 }
 
 @batchSize(1)
@@ -41,7 +41,10 @@ resource speechService 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
   properties: {
     publicNetworkAccess: 'Enabled'
   }
-  tags: union(tags, { 'azd-service-name': 'speech-${resourceToken}' })
+  tags: union(tags, { 'azd-service-name': 'speech-${tags['azd-env-name']}' })
 }
 
 output aoaiEndpoint string = account.properties.endpoint
+output aoaiName string = account.name
+output speechRegion string = location
+output speechName string = speechService.name
