@@ -16,6 +16,7 @@
             "type": "python",
             "request": "launch",
             "module": "streamlit",
+            "cwd": "${fileDirname}",
             "args": [
                 "run",
                 "${file}"
