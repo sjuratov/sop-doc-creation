@@ -2,14 +2,14 @@ import os
 import time
 import json
 import streamlit as st
-import sys
+#import sys
 from urllib.parse import urlparse
-from dotenv import find_dotenv, load_dotenv
+#from dotenv import find_dotenv, load_dotenv
 from pytubefix import YouTube
 from pytubefix.cli import on_progress
 
-sys.path.append('../')
-from modules.helpers import *
+#sys.path.append('../')
+from helpers import *
 
 def main():
 
