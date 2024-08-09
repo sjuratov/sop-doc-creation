@@ -28,7 +28,8 @@ def main():
     # Azure OpenAI GPT deployed model 
     # Defined in infra/main.bicep as '<model>-<version>'
     # Shall be defined in .env file?
-    model = "gpt-4o-2024-05-13"
+    # model = "gpt-4o-2024-05-13"
+    model = "gpt-4o-mini"
 
     st.title("SOP Document Generator")
 
@@ -70,7 +71,8 @@ def main():
         st.divider()
         video_file_info = f"""
         ### Video File Information \n
-        File: {file_name} \n
+        Source: <{src_video_file}>  \n
+        Destination: {file_name} \n
         Size: {file_size_mb:.2f} MB \n
         Last Modified: {formatted_time} \n
         Duration: {duration:.0f} seconds \n
@@ -144,13 +146,44 @@ def main():
         prompt = """
         Describe the main steps of this checklist document.
         Extract all the specific steps. Please be precise and concise.
-        Output is:
-        Step: step number
-        Title: Generate a simple summary of the step
-        Summary: Generate a summary of the step in 2 or 3 lines
-        Keywords: generate some keywords to explain the step
-        Offset: offset
-        Offset_in_secs: offset in seconds
+
+        ### Output must have following properties:
+        - Step: step number
+        - Title: Generate a simple summary of the step
+        - Summary: Generate a summary of the step in 2 or 3 lines
+        - Keywords: generate some keywords to explain the step
+        - Offset: offset
+        - Offset_in_secs: offset in seconds
+
+        ### Here is an example:
+        {
+            "Steps": [
+                {
+                    "Step": 1,
+                    "Title": "Introduction",
+                    "Summary": "Provide an overview of the checklist document, including its purpose and scope.",
+                    "Keywords": [
+                        "overview",
+                        "purpose",
+                        "scope"
+                    ],
+                    "Offset": 5900000,
+                    "Offset_in_secs": 0.59
+                },
+                {
+                    "Step": 2,
+                    "Title": "Preparation",
+                    "Summary": "Outline the necessary preparations before starting the main tasks, such as gathering materials and setting up the environment.",
+                    "Keywords": [
+                        "preparation",
+                        "materials",
+                        "setup"
+                    ],
+                    "Offset": 183300000,
+                    "Offset_in_secs": 18.33
+                }
+            ]
+        }
         """
 
         start = time.time()
@@ -166,7 +199,7 @@ def main():
         st.divider()
         #st.markdown("### Create SOP in Microsoft Word format")
         st.info("Processing transcribed text and video ...")
-        json_data = json.loads(completion)["steps"]
+        json_data = json.loads(completion)["Steps"]
         start = time.time()
         docx_file = checklist_docx_file(video_file.name, json_data, RESULTS_DIR, model, 1)
         elapsed = time.time() - start

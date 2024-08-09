@@ -11,6 +11,7 @@ import pandas as pd
 import requests
 import sys
 import time
+import re
 
 from docx import Document
 from docx.shared import Inches
@@ -534,10 +535,13 @@ def get_video_frame(video_file, offset_in_secs, FRAMES_DIR):
         return
 
     # Save the frame as an image
+    # cv2 library doesn't handle well special characters in file name
+    video_file = re.sub(r"[^a-zA-Z0-9 -_]", "", os.path.splitext(os.path.basename(video_file))[0])
     frame_file = os.path.join(
         FRAMES_DIR,
-        f"{os.path.splitext(os.path.basename(video_file))[0]}_frame_{str(offset_in_secs)}.png"
+        f"{video_file}_frame_{str(offset_in_secs)}.png"
     )
+    #frame_file = re.sub(r"[^a-zA-Z0-9 \/.\\\-_]", "", frame_file)
     cv2.imwrite(frame_file, frame)
 
     # Release the video capture object
