@@ -1,3 +1,6 @@
+@description('Resource Token')
+param resourceToken string
+
 @description('Name of the Azure Function App')
 param functionAppName string
 
@@ -23,7 +26,7 @@ var storageAccountConnectionString = 'DefaultEndpointsProtocol=https;AccountName
 // [ FUNCTION APP ]
 // Plan (Consumption Plan)
 resource functionAppPlan 'Microsoft.Web/serverfarms@2022-03-01' = {
-  name: 'functionApp-consum-plan'
+  name: 'func-plan-${resourceToken}'
   location: location
   kind: 'linux'
   sku: {
