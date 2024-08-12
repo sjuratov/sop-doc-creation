@@ -61,6 +61,7 @@ AZURE_SPEECH_REGION = os.getenv("AZURE_SPEECH_REGION")
 # Azure OpenAI
 AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
 AZURE_OPENAI_KEY = os.getenv("AZURE_OPENAI_KEY")
+AZURE_OPENAI_DEPLOYMENT_NAME = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
 
 print(f"Azure OpenAI endpoint (helpers): {AZURE_OPENAI_ENDPOINT}")
 
@@ -408,7 +409,7 @@ def text_search(text):
 
     return df_res, offset_secs, duration_secs
 
-def ask_gpt4o(prompt, sop_text, model):
+def ask_gpt4o(prompt, sop_text):
     """
     Sends a prompt to the GPT-4 model via Azure OpenAI and returns the response.
 
@@ -421,6 +422,7 @@ def ask_gpt4o(prompt, sop_text, model):
     Returns:
         str: The content of the response from the GPT-4o model.
     """
+    model = AZURE_OPENAI_DEPLOYMENT_NAME
     
     # Azure OpenAI client
     client = AzureOpenAI(azure_endpoint=AZURE_OPENAI_ENDPOINT,
@@ -623,7 +625,7 @@ def gpt4o_imagefile(image_file, prompt, model):
 
     return response
 
-def checklist_docx_file(video_file, json_data, RESULTS_DIR, model, nb_images_per_step=3):
+def checklist_docx_file(video_file, json_data, RESULTS_DIR, nb_images_per_step=3):
     """
     Generates a DOCX file containing a checklist based on video frames and provided JSON data.
 
@@ -639,7 +641,8 @@ def checklist_docx_file(video_file, json_data, RESULTS_DIR, model, nb_images_per
     Returns:
         str: Path to the generated DOCX file.
     """
-    
+    model = AZURE_OPENAI_DEPLOYMENT_NAME
+
     print("Generating checklist file...")
     
     image_size = 5 # size of each image that will be inserted
