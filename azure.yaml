@@ -3,10 +3,14 @@ name: sop-doc-creation
 infra:
   provider: bicep
 services:
-  blobTriggerProcessor:
-    project: ./src/blob-trigger
-    language: python
-    host: function
+  # blobTriggerProcessor:
+  #   project: ./src/blob-trigger
+  #   language: python
+  #   host: function
+  web-app:
+    project: ./src/frontend
+    language: py
+    host: appservice
 hooks:
   postup:
     posix:  

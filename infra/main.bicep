@@ -50,6 +50,7 @@ resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
 // [ Array of OpenAI Model deployments ]
 param aoaiGpt4ModelName string= 'gpt-4o'
 param aoaiGpt4ModelVersion string = '2024-05-13'
+// var aoaiDeploymentName = '${aoaiGpt4ModelName}-${aoaiGpt4ModelVersion}'
 
 param aoaiEmbeddingsName string = 'text-embedding-ada-002'
 param aoaiEmbeddingsVersion string  = '2'
@@ -111,19 +112,40 @@ module monitoring 'modules/monitoring/monitor.bicep' = {
   }
 }
 
-module functionApp 'modules/functionapp/functionapp.bicep' = {
-  name: 'functionApp'
+// module functionApp 'modules/functionapp/functionapp.bicep' = {
+//   name: 'functionApp'
+//   scope: resourceGroup
+//   params: {
+//     resourceToken: resourceToken
+//     storageAccountName: storageAccount.outputs.storageAccountName
+//     functionAppName: 'funcapp-${resourceToken}'
+//     appInsightsConnectionString: monitoring.outputs.appInsightsConnectionString
+//     tags: tags
+//   }
+// }
+
+module webApp 'modules/webapp/webapp.bicep' = {
+  name: 'webapp'
   scope: resourceGroup
   params: {
     storageAccountName: storageAccount.outputs.storageAccountName
-    functionAppName: 'funcapp-${resourceToken}'
     appInsightsConnectionString: monitoring.outputs.appInsightsConnectionString
     tags: tags
+    resourceToken: resourceToken
+    azureOpenAIName: aiServices.outputs.aoaiName
+    azureModelDeployment: deployments[0].name
+    azureSpeechName: aiServices.outputs.speechName
   }
+  // dependsOn: [
+  //   functionApp
+  // ]
 }
 
 output AZURE_OPENAI_ENDPOINT string = aiServices.outputs.aoaiEndpoint
 output AZURE_OPENAI_ACCOUNT_NAME string = aiServices.outputs.aoaiName
+output AZURE_OPENAI_DEPLOYMENT_NAME string = deployments[0].name
 
 output AZURE_SPEECH_REGION   string = aiServices.outputs.speechRegion
 output AZURE_SPEECH_ACCOUNT_NAME  string = aiServices.outputs.speechName
+
+output AZURE_WEBAPP_ENDPOINT string = webApp.outputs.WEB_URI

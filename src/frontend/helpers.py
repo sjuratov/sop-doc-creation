@@ -13,6 +13,7 @@ import sys
 import time
 import re
 
+
 from docx import Document
 from docx.shared import Inches
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
