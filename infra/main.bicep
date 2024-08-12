@@ -143,7 +143,7 @@ module webApp 'modules/webapp/webapp.bicep' = {
 
 output AZURE_OPENAI_ENDPOINT string = aiServices.outputs.aoaiEndpoint
 output AZURE_OPENAI_ACCOUNT_NAME string = aiServices.outputs.aoaiName
-output AZURE_MODEL_DEPLOYMENT string = deployments[0].name
+output AZURE_OPENAI_DEPLOYMENT_NAME string = deployments[0].name
 
 output AZURE_SPEECH_REGION   string = aiServices.outputs.speechRegion
 output AZURE_SPEECH_ACCOUNT_NAME  string = aiServices.outputs.speechName
