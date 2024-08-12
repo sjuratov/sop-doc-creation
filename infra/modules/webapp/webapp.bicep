@@ -1,11 +1,11 @@
 @description('Unique Resource Token')
-param resourceToken string 
+param resourceToken string
 
 @description('Location for all resources')
 param location string = resourceGroup().location
 
 @description('Name of the storage account')
-param storageAccountName string 
+param storageAccountName string
 
 @description('App Ingisghts Connection String')
 param appInsightsConnectionString string
@@ -59,7 +59,7 @@ resource web 'Microsoft.Web/sites@2022-03-01' = {
       detailedErrorLoggingEnabled: true
       minTlsVersion: '1.2'
       scmMinTlsVersion: '1.2'
-      publicNetworkAccess: 'Enabled'  
+      publicNetworkAccess: 'Enabled'
     }
     httpsOnly: true
   }
@@ -79,7 +79,7 @@ resource web 'Microsoft.Web/sites@2022-03-01' = {
       AZURE_SPEECH_REGION: speechService.location
       AZURE_OPENAI_ENDPOINT: openAIService.properties.endpoint
       AZURE_OPENAI_KEY: '${openAIService.listKeys().key1}'
-      AZURE_MODEL_DEPLOYMENT: azureModelDeployment
+      AZURE_MODEL_DEPLOYMENT_NAME: azureModelDeployment
     }
   }
 
