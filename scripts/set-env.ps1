@@ -1,3 +1,5 @@
+Write-Host "Setting environment variables for OpenAI and Speech services from PS1"
+
 $azdenv = azd env get-values --output json | ConvertFrom-Json
 $resourceGroupName = "rg-"+$azdenv.AZURE_ENV_NAME
 
