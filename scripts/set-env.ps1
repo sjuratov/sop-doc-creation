@@ -24,4 +24,3 @@ azd env set AZURE_OPENAI_KEY $aoaiKey
 azd env set AZURE_SPEECH_KEY $speechKey
 
 exit 0
-
