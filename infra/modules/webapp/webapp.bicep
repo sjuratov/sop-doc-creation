@@ -54,7 +54,7 @@ resource web 'Microsoft.Web/sites@2022-03-01' = {
     siteConfig: {
       linuxFxVersion: 'PYTHON|3.11'
       pythonVersion: '3.11'
-      appCommandLine: 'startup.sh'
+      appCommandLine: 'python3.11 -m streamlit run streamlit_app.py --server.port 8000 --server.address 0.0.0.0'
       ftpsState: 'Disabled'
       detailedErrorLoggingEnabled: true
       minTlsVersion: '1.2'

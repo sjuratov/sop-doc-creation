@@ -1,4 +1,4 @@
-Write-Host "Setting environment variables for OpenAI and Speech services from PS1"
+Write-Host "Setting environment variables for OpenAI and Speech services - PS1"
 
 $azdenv = azd env get-values --output json | ConvertFrom-Json
 $resourceGroupName = "rg-"+$azdenv.AZURE_ENV_NAME
@@ -16,7 +16,7 @@ $speechKey=az cognitiveservices account keys list `
   --output tsv `
 
 if ($? -eq $false) {
-    Write-Host "Sourcing Keys failed. Has azd up been run?"
+    Write-Host "Sourcing Keys failed. Esnure 'az login' and 'azd up' Have been run successfully."
     exit 1
 }
 
