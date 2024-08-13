@@ -79,7 +79,7 @@ resource web 'Microsoft.Web/sites@2022-03-01' = {
       AZURE_SPEECH_REGION: speechService.location
       AZURE_OPENAI_ENDPOINT: openAIService.properties.endpoint
       AZURE_OPENAI_KEY: '${openAIService.listKeys().key1}'
-      AZURE_MODEL_DEPLOYMENT_NAME: azureModelDeployment
+      AZURE_OPENAI_DEPLOYMENT_NAME: azureModelDeployment
     }
   }
 
