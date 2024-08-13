@@ -19,6 +19,8 @@ azd env set AZURE_LOCATION 'swedencentral'
 azd up
 ```
 
+**OBS!** 'Deploying services (azd deploy)' stage can take up to 10 min.
+
 # ENV Variables
 
 The env variables are read from the azd config file located at:
@@ -36,7 +38,7 @@ AZURE_SPEECH_REGION
 AZURE_OPENAI_ENDPOINT
 AZURE_OPENAI_KEY
 
-# Run 
+# Run
 
 ```
 cd src/frontend
