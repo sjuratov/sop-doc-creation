@@ -24,7 +24,7 @@ def main():
     st.title("VANTAGE Genie Accelerator")
     st.markdown("#### (Video Analysis, Notation, Transcription, and Generation Engine)")
 
-    source_video_file = "https://raw.githubusercontent.com/retkowsky/samplesvideos/main/surgical_sop.mp4"
+    source_video_file = "https://raw.githubusercontent.com/retkowsky/samplesvideos/main/forklift_checklist.mp4"
     src_video_file = st.text_input("Process video file from:", source_video_file)
     dst_video_folder = st.text_input("Save video file to:", VIDEO_DIR)
 
@@ -32,18 +32,20 @@ def main():
         st.divider()
         # Download YouTube video
         if "youtu" in src_video_file:
-            youtube = YouTube(src_video_file, on_progress_callback = on_progress)
-            video = youtube.streams.get_highest_resolution()
-            dst_video_file = os.path.join(dst_video_folder, video.default_filename)
-            if not os.path.isfile(dst_video_file):
-                st.info(f"Downloading {src_video_file}")
-                start = time.time()
-                video = download_youtube_video(src_video_file, dst_video_folder)
-                elapsed = time.time() - start
-                st.info("Completed in " + time.strftime(
-                    "%H:%M:%S.{}".format(str(elapsed % 1)[2:])[:15], time.gmtime(elapsed)))
-            else:
-                st.info(f"Using local copy because {src_video_file} has already been previously downloaded")
+            st.info(f"It seems you are trying to download file from YouTube. That is currently not supported. Please select different video file.")
+            st.stop()
+            # youtube = YouTube(src_video_file, on_progress_callback = on_progress)
+            # video = youtube.streams.get_highest_resolution()
+            # dst_video_file = os.path.join(dst_video_folder, video.default_filename)
+            # if not os.path.isfile(dst_video_file):
+            #     st.info(f"Downloading {src_video_file}")
+            #     start = time.time()
+            #     video = download_youtube_video(src_video_file, dst_video_folder)
+            #     elapsed = time.time() - start
+            #     st.info("Completed in " + time.strftime(
+            #         "%H:%M:%S.{}".format(str(elapsed % 1)[2:])[:15], time.gmtime(elapsed)))
+            # else:
+            #     st.info(f"Using local copy because {src_video_file} has already been previously downloaded")
 
         # Download video from direct link
         else:
@@ -175,8 +177,13 @@ def main():
         elapsed = time.time() - start
         st.info("Completed in " + time.strftime(
             "%H:%M:%S.{}".format(str(elapsed % 1)[2:])[:15], time.gmtime(elapsed)))
-        st.info(f"SOP document saved to {docx_file}")
-        
 
+        # Download SOP document
+        @st.fragment
+        def download_sop_document(docx_file):
+            with open(docx_file, 'rb') as f:
+                st.download_button('Download SOP document', f, file_name=os.path.basename(docx_file)) 
+        download_sop_document(docx_file)
+        
 if __name__ == "__main__":
     main()
