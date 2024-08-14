@@ -1,0 +1,15 @@
+azure-cognitiveservices-speech
+opencv-python-headless
+librosa
+matplotlib
+openai
+pandas
+requests
+python-docx
+python-dotenv
+ipython
+moviepy
+pydub
+wordcloud
+streamlit
+pytubefix

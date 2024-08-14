@@ -21,9 +21,6 @@ def main():
     # Language in the video for Azure Speech to Text
     language = "en-US"
 
-    # Azure AI model 
-    model = "gpt-4o-2024-05-13"
-
     st.title("VANTAGE Genie Accelerator")
     st.markdown("#### (Video Analysis, Notation, Transcription, and Generation Engine)")
 
@@ -164,7 +161,7 @@ def main():
         }
         """
         start = time.time()
-        completion = ask_gpt4o(prompt, sop_text, model)
+        completion = ask_gpt4o(prompt, sop_text)
         elapsed = time.time() - start
         st.info("Completed in " + time.strftime(
             "%H:%M:%S.{}".format(str(elapsed % 1)[2:])[:15], time.gmtime(elapsed)))
@@ -174,7 +171,7 @@ def main():
         st.info("Creating SOP document in Microsoft Word format")
         json_data = json.loads(completion)["Steps"]
         start = time.time()
-        docx_file = checklist_docx_file(video_file.name, json_data, RESULTS_DIR, model, 1)
+        docx_file = checklist_docx_file(video_file.name, json_data, RESULTS_DIR, 1)
         elapsed = time.time() - start
         st.info("Completed in " + time.strftime(
             "%H:%M:%S.{}".format(str(elapsed % 1)[2:])[:15], time.gmtime(elapsed)))

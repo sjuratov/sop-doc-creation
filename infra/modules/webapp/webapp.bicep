@@ -1,11 +1,11 @@
 @description('Unique Resource Token')
-param resourceToken string 
+param resourceToken string
 
 @description('Location for all resources')
 param location string = resourceGroup().location
 
 @description('Name of the storage account')
-param storageAccountName string 
+param storageAccountName string
 
 @description('App Ingisghts Connection String')
 param appInsightsConnectionString string
@@ -54,12 +54,12 @@ resource web 'Microsoft.Web/sites@2022-03-01' = {
     siteConfig: {
       linuxFxVersion: 'PYTHON|3.11'
       pythonVersion: '3.11'
-      appCommandLine: 'startup.sh'
+      appCommandLine: 'python3.11 -m streamlit run streamlit_app.py --server.port 8000 --server.address 0.0.0.0'
       ftpsState: 'Disabled'
       detailedErrorLoggingEnabled: true
       minTlsVersion: '1.2'
       scmMinTlsVersion: '1.2'
-      publicNetworkAccess: 'Enabled'  
+      publicNetworkAccess: 'Enabled'
     }
     httpsOnly: true
   }
@@ -79,7 +79,7 @@ resource web 'Microsoft.Web/sites@2022-03-01' = {
       AZURE_SPEECH_REGION: speechService.location
       AZURE_OPENAI_ENDPOINT: openAIService.properties.endpoint
       AZURE_OPENAI_KEY: '${openAIService.listKeys().key1}'
-      AZURE_MODEL_DEPLOYMENT: azureModelDeployment
+      AZURE_OPENAI_DEPLOYMENT_NAME: azureModelDeployment
     }
   }
 
