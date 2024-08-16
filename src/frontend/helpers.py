@@ -5,11 +5,11 @@ import datetime
 import json
 import librosa
 import matplotlib.pyplot as plt
-import openai
+#import openai
 import os
 import pandas as pd
 import requests
-import sys
+#import sys
 import time
 import re
 
@@ -17,13 +17,13 @@ import re
 from docx import Document
 from docx.shared import Inches
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from io import BytesIO
-from IPython.display import Audio, Video, FileLink, Image
+#from io import BytesIO
+#from IPython.display import Audio, Video, FileLink, Image
 from mimetypes import guess_type
 from moviepy.editor import VideoFileClip
 from openai import AzureOpenAI
 from pydub import AudioSegment
-from wordcloud import WordCloud
+#from wordcloud import WordCloud
 
 from pytubefix import YouTube
 from pytubefix.cli import on_progress
@@ -275,6 +275,18 @@ def display_amplitude(audio_file):
     # plt.show()
     st.pyplot(plt)
 
+def increase_audio_speed(filename, output_filename, speed_change_factor):  
+    # Load your audio file  
+    audio = AudioSegment.from_file(filename)  # Change to your file format  
+    # Change speed: Speed up (e.g., 1.5 times)  
+    speed_change_factor = speed_change_factor  # Increase this to make it faster, decrease to slow down  
+    new_audio = audio._spawn(audio.raw_data, overrides={'frame_rate': int(audio.frame_rate * speed_change_factor)})  
+    # Set the frame rate to the new audio  
+    new_audio = new_audio.set_frame_rate(audio.frame_rate)  
+    # Export the modified audio  
+    new_audio.export(output_filename, format="wav")  # Change to your desired format
+    return output_filename
+
 def azure_text_to_speech(audio_filepath, locale, disp=False):
     """
     Transcribes speech from an audio file using Azure Speech-to-Text (TTS) service.
@@ -302,6 +314,12 @@ def azure_text_to_speech(audio_filepath, locale, disp=False):
 
     print(f"Running Speech to text from audio file {audio_filepath}\n")
     start = time.time()
+
+    # If speed_change_factor is greater then 1, increase the speed of the audio. This comes with a trade-off of accuracy.
+    output_filename = os.path.splitext(audio_filepath)[0] + "_modified.wav"
+    speed_change_factor = 1
+    if speed_change_factor != 1:
+        audio_filepath = increase_audio_speed(audio_filepath, output_filename, speed_change_factor)
 
     # Config
     audio_config = speechsdk.audio.AudioConfig(filename=audio_filepath)
