@@ -48,7 +48,7 @@ Alternatively, if the pre existing resources need to be used, configure .env fil
 # Deploy the infrastructure
 
 ```sh
-azd env set AZURE_LOCATION 'swedencentral'
+azd env set AZURE_LOCATION 'switzerlandnorth'
 azd up
 ```
 

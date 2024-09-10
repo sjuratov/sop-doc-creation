@@ -5,6 +5,7 @@ targetScope = 'subscription'
 @description('Name of the the environment which is used to generate a short unique hash used in all resources.')
 param environmentName string
 
+// Commenting out the regions where the deployment failed for one or another reason
 @minLength(1)
 @description('Primary location for all resources (filtered on available regions for Azure Open AI Service).')
 @allowed([
@@ -12,14 +13,14 @@ param environmentName string
   'southcentralus'
   'australiaeast'
   'canadaeast'
-  'eastus'
+  // 'eastus'
   'eastus2'
   'francecentral'
   'japaneast'
   'northcentralus'
-  'swedencentral'
+  // 'swedencentral'
   'switzerlandnorth'
-  'uksouth'
+  // 'uksouth'
 ])
 param location string
 
@@ -64,7 +65,7 @@ param deployments array = [
       version: aoaiGpt4ModelVersion
     }
     sku: {
-      name: 'Standard'
+      name: 'GlobalStandard'
       capacity: 30
     }
   }
