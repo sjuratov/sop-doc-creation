@@ -86,10 +86,8 @@ resource web 'Microsoft.Web/sites@2022-03-01' = {
       // Must match the main bicep outputs for local execution compatibility
       AZURE_OPENAI_ENDPOINT: openAIService.properties.endpoint
       AZURE_OPENAI_DEPLOYMENT_NAME: azureModelDeployment
-      // AZURE_OPENAI_KEY: '${openAIService.listKeys().key1}'
       AZURE_SPEECH_RESOURCE_ID: speechService.id
       AZURE_SPEECH_REGION: speechService.location
-      // AZURE_SPEECH_KEY: '${speechService.listKeys().key1}'
     }
   }
 
