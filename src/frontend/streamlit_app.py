@@ -30,22 +30,11 @@ def main():
 
     if st.button("Start processing"):
         st.divider()
+        
         # Download YouTube video
         if "youtu" in src_video_file:
             st.info(f"It seems you are trying to download file from YouTube. That is currently not supported. Please select different video file.")
             st.stop()
-            # youtube = YouTube(src_video_file, on_progress_callback = on_progress)
-            # video = youtube.streams.get_highest_resolution()
-            # dst_video_file = os.path.join(dst_video_folder, video.default_filename)
-            # if not os.path.isfile(dst_video_file):
-            #     st.info(f"Downloading {src_video_file}")
-            #     start = time.time()
-            #     video = download_youtube_video(src_video_file, dst_video_folder)
-            #     elapsed = time.time() - start
-            #     st.info("Completed in " + time.strftime(
-            #         "%H:%M:%S.{}".format(str(elapsed % 1)[2:])[:15], time.gmtime(elapsed)))
-            # else:
-            #     st.info(f"Using local copy because {src_video_file} has already been previously downloaded")
 
         # Download video from direct link
         else:

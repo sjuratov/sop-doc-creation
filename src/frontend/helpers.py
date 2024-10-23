@@ -62,9 +62,9 @@ if os.getenv("AZURE_OPENAI_KEY"):
 else:
     print("Using Azure AD Token Provider")
     OPEANAI_CLIENT = AzureOpenAI(azure_endpoint=AZURE_OPENAI_ENDPOINT,
-                        azure_ad_token_provider=get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"),
+                        azure_ad_token_provider=get_bearer_token_provider(DefaultAzureCredential(),"https://cognitiveservices.azure.com/.default"),
                         api_version="2024-06-01")
- 
+
 print(f"Azure OpenAI endpoint (helpers): {AZURE_OPENAI_ENDPOINT}")
 
 #
@@ -86,7 +86,8 @@ def download_file(url, path):
 #
 def display_video_frames(video_file):
     """
-    Display a specified number of equally time-distributed frames from a video file in their temporal order.
+    Display a specified number of equally time-distributed frames from a video file 
+    in their temporal order.
 
     Parameters:
     video_path (str): Path to the MP4 video file.
@@ -95,12 +96,12 @@ def display_video_frames(video_file):
     Returns:
     None
     """
-    
+
     num_frames=10
-    
+
     # Open the video file
     cap = cv2.VideoCapture(video_file)  # pylint: disable=no-member
-    
+
     # Check if the video was opened successfully
     if not cap.isOpened():
         print("Error: Could not open video file.")
@@ -108,7 +109,7 @@ def display_video_frames(video_file):
 
     # Get the total number of frames
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) # pylint: disable=no-member
-    
+
     if total_frames < num_frames:
         print(f"Error: The video contains only {total_frames} frames, which is less than {num_frames}.")
         cap.release()
@@ -116,38 +117,38 @@ def display_video_frames(video_file):
 
     # Calculate interval to select frames
     interval = total_frames // num_frames
-    
+
     # Generate equally distributed frame indices
     frame_indices = [i * interval for i in range(num_frames)]
 
     # Set up the plot for displaying frames
     plt.figure(figsize=(15, 10))
-    
+
     for i, frame_idx in enumerate(frame_indices):
         # Set the video position to the frame index
         cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)# pylint: disable=no-member
-        
+
         # Read the frame
         ret, frame = cap.read()
-        
+
         if not ret:
             print(f"Error: Could not read frame at index {frame_idx}.")
             continue
-        
+
         # Convert frame from BGR to RGB
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)# pylint: disable=no-member
-        
+
         # Plot the frame
         plt.subplot(2, 5, i + 1)  # Adjust subplot grid as needed
         plt.imshow(frame_rgb)
         plt.title(f"Frame {frame_idx}")
         plt.axis('off')
-    
+
     # Show all frames
     plt.tight_layout()
     st.markdown("#### Video Frames")
     st.pyplot(plt)
-    
+
     # Release the video capture object
     cap.release()
 
@@ -169,23 +170,23 @@ def get_audio_file(video_file, RESULTS_DIR):
     str: The full path to the saved audio file in WAV format. The path includes the directory
          specified by `AUDIO_DIR` and the filename derived from the input video file.
     """
-    
+
     print("Audio extraction from video file {video_file}\n")
     start = time.time()
 
     audio_file = os.path.join(
         RESULTS_DIR,
         os.path.splitext(os.path.basename(video_file))[0] + ".wav")
-    
+
     # Loading video file
     video_clip = VideoFileClip(video_file)
     audio_clip = video_clip.audio
-    
+
     # Saving audio file
     audio_clip.write_audiofile(audio_file)
     audio_clip.close()
     video_clip.close()
-    
+
     # End
     print("\nDone")
     elapsed = time.time() - start
@@ -209,12 +210,12 @@ def display_amplitude(audio_file):
     None: This function does not return any value. It displays a matplotlib figure showing
           the amplitude of the audio signal.
     """
-    
+
     plt.figure(figsize=(15, 5))
-    
+
     # Reading the sound file
     y, sr = librosa.load(audio_file)
-    
+
     # Amplitude plot
     librosa.display.waveshow(y, sr=sr)
     title = f"Waveplot of {audio_file}"
@@ -256,9 +257,8 @@ def azure_text_to_speech(audio_filepath, locale, disp=False):
 
     # Config
     audio_config = speechsdk.audio.AudioConfig(filename=audio_filepath)
-    
+
     # https://learn.microsoft.com/en-us/azure/ai-services/speech-service/how-to-configure-azure-ad-auth?tabs=portal&pivots=programming-language-python
-    
     if AZURE_SPEECH_KEY:
         print("Using Azure Speech Key")
         speech_config = speechsdk.SpeechConfig(subscription=AZURE_SPEECH_KEY,region=AZURE_SPEECH_REGION)
@@ -267,7 +267,7 @@ def azure_text_to_speech(audio_filepath, locale, disp=False):
         token = DefaultAzureCredential().get_token("https://cognitiveservices.azure.com/.default").token
         auth_token = f"aad#{os.getenv('AZURE_SPEECH_RESOURCE_ID')}#{token}"
         speech_config = speechsdk.SpeechConfig(auth_token=auth_token, region=AZURE_SPEECH_REGION)
-        
+
     # Timestamps are required
     speech_config.request_word_level_timestamps()
     speech_config.speech_recognition_language = locale
@@ -325,7 +325,7 @@ def azure_text_to_speech(audio_filepath, locale, disp=False):
         lambda evt: logger.debug("SESSION STOPPED {}".format(evt))) # pylint: disable=undefined-variable
     speech_recognizer.canceled.connect(
         lambda evt: logger.debug("CANCELED {}".format(evt))) # pylint: disable=undefined-variable
-    
+
     # stop continuous recognition on either session stopped or canceled events
     speech_recognizer.session_stopped.connect(stop_cb)
     speech_recognizer.canceled.connect(stop_cb)
@@ -353,7 +353,7 @@ def display_file_info(file_name):
     Returns:
     file_name, file_size, formatted_time
     """
-    
+
     if not os.path.isfile(file_name):
         print(f"The file at {file_name} does not exist.")
         return
@@ -361,18 +361,18 @@ def display_file_info(file_name):
     # Get the file size
     file_size_bytes = os.path.getsize(file_name)
     file_size_mb = file_size_bytes / (1024 * 1024)
-    
+
     # Get the last modification time
     modification_time = os.path.getmtime(file_name)
-    
+
     # Convert modification time to a readable format
     formatted_time = datetime.datetime.fromtimestamp(modification_time).strftime('%Y-%m-%d %H:%M:%S')
-    
+
     # Display the file information
     print(f"File: {file_name}")
     print(f"Size: {file_size_mb:.2f} MB")
     print(f"Last Modified: {formatted_time}")
-    
+
     return file_name, file_size_mb, formatted_time
 
 #
@@ -391,7 +391,7 @@ def ask_gpt4o(prompt, sop_text):
     """
     model = AZURE_OPENAI_DEPLOYMENT_NAME
     client = OPEANAI_CLIENT
-    
+
     # Response with the json object property
     response = client.chat.completions.create(
         model=model,
@@ -430,11 +430,11 @@ def get_video_info(video_file):
     Returns:
     duration, total of frames and fps
     """
-    
+
     # Open the video file
     cap = cv2.VideoCapture(video_file) # pylint: disable=no-member
     print(f"Video file: {video_file}")
-    
+
     if not cap.isOpened():
         print(f"Error: Cannot open video file {video_file}")
         return
@@ -458,7 +458,7 @@ def get_video_info(video_file):
 
     # Release the video capture object
     cap.release()
-    
+
     return duration, total_frames, fps
 
 #
@@ -473,7 +473,7 @@ def get_video_frame(video_file, offset_in_secs, FRAMES_DIR):
     Returns:
         str: Path to the saved frame image file.
     """
-    
+
     # Open the video file
     cap = cv2.VideoCapture(video_file) # pylint: disable=no-member
 
@@ -529,7 +529,7 @@ def local_image_to_data_url(image_path):
         str: A data URL containing the base64-encoded image data.
 
     """
-    
+
     mime_type, _ = guess_type(image_path)
 
     if mime_type is None:
@@ -557,7 +557,7 @@ def gpt4o_imagefile(image_file, prompt, model):
     Returns:
         dict: The response from Azure OpenAI's GPT-4 model containing the analysis results.
     """
-    
+
     client = OPEANAI_CLIENT
 
     response = client.chat.completions.create(
@@ -604,11 +604,11 @@ def checklist_docx_file(video_file, json_data, RESULTS_DIR, nb_images_per_step=3
     model = AZURE_OPENAI_DEPLOYMENT_NAME
 
     print("Generating checklist file...")
-    
+
     image_size = 5 # size of each image that will be inserted
 
     FRAMES_DIR = f"{RESULTS_DIR}/frames"
-    
+
     # Filename
     docx_file = os.path.join(
         RESULTS_DIR,
@@ -627,9 +627,9 @@ def checklist_docx_file(video_file, json_data, RESULTS_DIR, nb_images_per_step=3
     # Heading level 1
     doc.add_heading(f"Checklist document for video: {video_file}", level=1)
     doc.add_paragraph("")
-    
+
     duration = 0  # do not change
-    
+
     # Process each step from the JSON data
     for idx, step in enumerate(json_data, start=1):
         # get values
@@ -638,7 +638,7 @@ def checklist_docx_file(video_file, json_data, RESULTS_DIR, nb_images_per_step=3
         keywords = step['Keywords']
         offset_secs = step['Offset_in_secs']
         duration = round(step['Offset_in_secs'] - duration, 3)
-        
+
         # Add checklist step details to the document
         doc.add_heading(f"{idx} Checklist step {step['Step']}: {title}", level=2)
         doc.add_paragraph("")
@@ -655,20 +655,20 @@ def checklist_docx_file(video_file, json_data, RESULTS_DIR, nb_images_per_step=3
                 int(offset_secs) + img_idx * 3,
                 FRAMES_DIR)            
             doc.add_picture(frame_file, width=Inches(image_size))
-        
+
             # Adding the automatic caption of the frame
             caption_image = gpt4o_imagefile(frame_file, "Generate a detailled caption of this image.", model)
             caption = caption_image.choices[0].message.content
             doc.add_paragraph(f"- Automatic frame caption: {caption}")
-            
+
             # OCR of the frame
             ocr_image = gpt4o_imagefile(frame_file, "Print all the extracted text from this image separated with a comma", model)
             ocr = ocr_image.choices[0].message.content
             doc.add_paragraph(f"- Automatic OCR: {ocr}")
-            
+
             # Deleting the frame file (optional)
             os.remove(frame_file)
-    
+
         # Add a blank line for spacing
         doc.add_page_break()
 
@@ -681,7 +681,7 @@ def checklist_docx_file(video_file, json_data, RESULTS_DIR, nb_images_per_step=3
 
     # Save the document
     doc.save(docx_file)
-    
+
     # End
     print(f"\nDone. Checklist file has been saved to {docx_file}")
 
