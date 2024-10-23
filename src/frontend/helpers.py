@@ -1,35 +1,42 @@
-import azure.cognitiveservices.speech as speechsdk
+"""
+This module contains helper functions for the frontend of the application.
+The functions are used to perform various tasks such as downloading files, displaying video frames,
+extracting audio from video files, displaying
+audio amplitude waveforms, transcribing audio files using Azure Speech-to-Text service, and
+sending prompts to the GPT-4o model via Azure OpenAI.
+"""
+
+import os
 import base64
-import cv2
 import datetime
 import json
-import librosa
-import matplotlib.pyplot as plt
-import os
-import pandas as pd
-import requests
 import time
 import re
+from mimetypes import guess_type
+
+import requests
+import librosa
+import cv2
 import streamlit as st
+import matplotlib.pyplot as plt
+import pandas as pd
 
 from docx import Document
 from docx.shared import Inches
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from mimetypes import guess_type
 from moviepy.editor import VideoFileClip
 from openai import AzureOpenAI
 from dotenv import find_dotenv, load_dotenv
 
+import azure.cognitiveservices.speech as speechsdk
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
 # Checking if the azd config file exists.
 # If so, use it to source env variables for local execution
-config_path = '../../.azure/config.json'
-default_environment = None
+CONFIG_PATH = '../../.azure/config.json'
 
-
-if os.path.exists(config_path):
-    with open(config_path, 'r') as config_file:
+if os.path.exists(CONFIG_PATH):
+    with open(CONFIG_PATH, 'r', encoding='utf-8') as config_file:
         config_data = json.load(config_file)
         default_environment = config_data.get('defaultEnvironment')
         if default_environment:
@@ -37,7 +44,7 @@ if os.path.exists(config_path):
         else:
             print("defaultEnvironment parameter not found in the config file.")
 else:
-    print(f"Config file {config_path} does not exist. Not local execuriton or 'azd up' has not been executed.")
+    print(f"Config file {CONFIG_PATH} does not exist. Not local execuriton or 'azd up' has not been executed.")
 
 # If azd config file not found, use the standard .env file
 if default_environment:
