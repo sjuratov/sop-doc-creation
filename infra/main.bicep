@@ -222,7 +222,7 @@ module webApp 'modules/webapp/webapp.bicep' = {
     azureOpenAIName: openAi.outputs.name
     azureModelDeployment: deployments[0].name
     azureSpeechName: speech.outputs.name
-    identityId: webIdentity.outputs.identityId
+    identityName: webIdentity.outputs.name
   }
 }
 
