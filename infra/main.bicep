@@ -59,6 +59,16 @@ resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   tags: tags
 }
 
+// ------------------------
+// [ User Assigned Identity for WebApp to avoid circular dependency ]
+module webIdentity './modules/webapp/identity.bicep' = {
+  name: 'webIdentity'
+  scope: resourceGroup
+  params: {
+    location: location
+    identityName: 'webapp-${resourceToken}'
+  }
+}
 
 // ------------------------
 // [ Array of OpenAI Model deployments ]
@@ -144,6 +154,11 @@ module openAi 'br/public:avm/res/cognitive-services/account:0.8.0' = {
         principalId: principalId
         principalType: principalType
       }
+      {
+        roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
+        principalId: webIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+      }
     ]
   }
 }
@@ -166,6 +181,11 @@ module speech 'br/public:avm/res/cognitive-services/account:0.8.0' = {
         roleDefinitionIdOrName: 'Cognitive Services Speech User'
         principalId: principalId
         principalType: principalType
+      }
+      {
+        roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
+        principalId: webIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
       }
     ]
   }
@@ -202,6 +222,7 @@ module webApp 'modules/webapp/webapp.bicep' = {
     azureOpenAIName: openAi.outputs.name
     azureModelDeployment: deployments[0].name
     azureSpeechName: speech.outputs.name
+    identityId: webIdentity.outputs.identityId
   }
 }
 

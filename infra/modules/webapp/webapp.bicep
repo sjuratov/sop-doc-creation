@@ -10,6 +10,7 @@ param storageAccountName string
 @description('App Ingisghts Connection String')
 param appInsightsConnectionString string
 
+param identityId string
 param tags object = {}
 param azureOpenAIName string
 param azureSpeechName string
@@ -64,7 +65,10 @@ resource web 'Microsoft.Web/sites@2022-03-01' = {
     httpsOnly: true
   }
   identity: {
-    type: 'SystemAssigned'
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${identityId}': {}
+    }
   }
 
   resource appSettings 'config' = {
@@ -75,10 +79,10 @@ resource web 'Microsoft.Web/sites@2022-03-01' = {
       APPLICATIONINSIGHTS_CONNECTION_STRING: appInsightsConnectionString
       AzureWebJobsStorage: storageAccountConnectionString
       // Must match the main bicep outputs for local execution compatibility
-      AZURE_SPEECH_KEY: '${speechService.listKeys().key1}'
+      // AZURE_SPEECH_KEY: '${speechService.listKeys().key1}'
       AZURE_SPEECH_REGION: speechService.location
       AZURE_OPENAI_ENDPOINT: openAIService.properties.endpoint
-      AZURE_OPENAI_KEY: '${openAIService.listKeys().key1}'
+      // AZURE_OPENAI_KEY: '${openAIService.listKeys().key1}'
       AZURE_OPENAI_DEPLOYMENT_NAME: azureModelDeployment
     }
   }

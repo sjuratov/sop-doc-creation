@@ -41,15 +41,12 @@ if os.path.exists(CONFIG_PATH):
         default_environment = config_data.get('defaultEnvironment')
         if default_environment:
             print(f"Default Environment used: {default_environment}")
+            load_dotenv(f"../../.azure/{default_environment}/.env",override=True)
         else:
             print("defaultEnvironment parameter not found in the config file.")
+            load_dotenv(find_dotenv(),override=True)
 else:
     print(f"Config file {CONFIG_PATH} does not exist. Not local execuriton or 'azd up' has not been executed.")
-
-# If azd config file not found, use the standard .env file
-if default_environment:
-    load_dotenv(f"../../.azure/{default_environment}/.env",override=True)
-else:
     load_dotenv(find_dotenv(),override=True)
 
 # Azure Speech services
