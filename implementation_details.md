@@ -49,6 +49,8 @@ azd up
 
 **Note** 'Deploying services (azd deploy)' stage can take up to 15 min.
 
+Once infrastructure is provisioned, .azure/<env_name>/.env will be automatically updated with relevant values.
+
 <h2>
 ENV Variables
 </h2>
