@@ -1,6 +1,6 @@
 # VANTAGE Genie Accelerator
 
-MENU: [**USER STORY**](#user-story) \| [**SCENARIOS**](#scenarios)  \| [**SUPPORTING DOCUMENTS**](#supporting-documents) \|
+MENU: [**USER STORY**](#user-story) \| [**SCENARIOS**](#scenarios) \| [**DEPLOYMENT**](#deployment) \| [**SUPPORTING DOCUMENTS**](#supporting-documents) \|
 [**CUSTOMER TRUTH**](#customer-truth)
 
 
@@ -24,6 +24,13 @@ Scenarios
 **Operations Manager**
 
 The VANTAGE Genie Accelerator is tailored for Operations Managers who are responsible for maintaining and optimizing business processes within their organizations. This solution helps Operations Managers save time by automating the creation of SOP documents from video recordings of procedures. For example, an Operations Manager at a manufacturing plant can use the VANTAGE Genie Accelerator to convert a recorded training session on machinery operation into a detailed and standardized SOP document. This ensures that all employees have access to consistent and accurate procedural guidelines, enhancing knowledge transfer, reducing errors, and improving overall operational efficiency.
+
+<h2><img src="./images/deployment.png" width="64">
+<br/>
+Deployment
+</h2>
+
+Read [Implementation Details](implementation_details.md) for deployment options.
 
 <h2><img src="./images/supportingDocuments.png" width="64">
 <br/>

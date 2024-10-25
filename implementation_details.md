@@ -39,8 +39,12 @@ Prerequisites
 - Login to your tentnant with Azure CLI `az login`
 
 <h2>
-Deploy the infrastructure using azd (substitute switzerlandnorth with region relevant to you)
+Quick deploy
 </h2>
+
+<h3>
+Deploy the infrastructure using azd (substitute switzerlandnorth with region relevant to you)
+</h3>
 
 ```sh
 azd env set AZURE_LOCATION 'switzerlandnorth'
@@ -50,6 +54,12 @@ azd up
 **Note** 'Deploying services (azd deploy)' stage can take up to 15 min.
 
 Once infrastructure is provisioned, .azure/<env_name>/.env will be automatically updated with relevant values.
+
+<h3>
+Deploy the infrastructure using deployment button
+</h3>
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsjuratov%2Fsop-doc-creation%2Fmain%2Finfra%2Fmain.json)
 
 <h2>
 ENV Variables
