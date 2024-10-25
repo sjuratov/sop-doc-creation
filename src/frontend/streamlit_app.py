@@ -1,11 +1,13 @@
+'''
+Streamlit app for VANTAGE Genie Accelerator
+'''
 import os
 import time
 import json
-import streamlit as st
 from urllib.parse import urlparse
-from pytubefix import YouTube
-from pytubefix.cli import on_progress
-from helpers import *
+import streamlit as st
+import helpers
+import pandas as pd
 
 def main():
 
@@ -30,22 +32,11 @@ def main():
 
     if st.button("Start processing"):
         st.divider()
+        
         # Download YouTube video
         if "youtu" in src_video_file:
             st.info(f"It seems you are trying to download file from YouTube. That is currently not supported. Please select different video file.")
             st.stop()
-            # youtube = YouTube(src_video_file, on_progress_callback = on_progress)
-            # video = youtube.streams.get_highest_resolution()
-            # dst_video_file = os.path.join(dst_video_folder, video.default_filename)
-            # if not os.path.isfile(dst_video_file):
-            #     st.info(f"Downloading {src_video_file}")
-            #     start = time.time()
-            #     video = download_youtube_video(src_video_file, dst_video_folder)
-            #     elapsed = time.time() - start
-            #     st.info("Completed in " + time.strftime(
-            #         "%H:%M:%S.{}".format(str(elapsed % 1)[2:])[:15], time.gmtime(elapsed)))
-            # else:
-            #     st.info(f"Using local copy because {src_video_file} has already been previously downloaded")
 
         # Download video from direct link
         else:
@@ -53,7 +44,7 @@ def main():
             if not os.path.isfile(dst_video_file):
                 st.info(f"Downloading {src_video_file}")
                 start = time.time()
-                download_file(src_video_file, dst_video_file)
+                helpers.download_file(src_video_file, dst_video_file)
                 elapsed = time.time() - start
                 st.info("Completed in " + time.strftime(
                     "%H:%M:%S.{}".format(str(elapsed % 1)[2:])[:15], time.gmtime(elapsed)))
@@ -65,8 +56,8 @@ def main():
         st.video(video_bytes)
 
         # Display video file information
-        file_name, file_size_mb, formatted_time = display_file_info(video_file.name)
-        duration, total_frames, fps = get_video_info(video_file.name)
+        file_name, file_size_mb, formatted_time = helpers.display_file_info(video_file.name)
+        duration, total_frames, fps = helpers.get_video_info(video_file.name)
         hours = int(duration // 3600)
         minutes = int((duration % 3600) // 60)
         seconds = int(duration % 60)
@@ -92,7 +83,7 @@ def main():
         if not os.path.isfile(audio_file):
             st.info("Extracting audio from video file")
             start = time.time()
-            audio_file = get_audio_file(video_file.name, RESULTS_DIR)
+            audio_file = helpers.get_audio_file(video_file.name, RESULTS_DIR)
             elapsed = time.time() - start
             st.info("Completed in " + time.strftime(
                 "%H:%M:%S.{}".format(str(elapsed % 1)[2:])[:15], time.gmtime(elapsed)))
@@ -103,7 +94,7 @@ def main():
         st.divider()
         st.info("Transcribing audio file to text")
         start = time.time()
-        transcript, confidence, words = azure_text_to_speech(audio_file, language)
+        transcript, confidence, words = helpers.azure_text_to_speech(audio_file, language)
         elapsed = time.time() - start
         st.info("Completed in " + time.strftime(
             "%H:%M:%S.{}".format(str(elapsed % 1)[2:])[:15], time.gmtime(elapsed)))
@@ -163,7 +154,7 @@ def main():
         }
         """
         start = time.time()
-        completion = ask_gpt4o(prompt, sop_text)
+        completion = helpers.ask_gpt4o(prompt, sop_text)
         elapsed = time.time() - start
         st.info("Completed in " + time.strftime(
             "%H:%M:%S.{}".format(str(elapsed % 1)[2:])[:15], time.gmtime(elapsed)))
@@ -173,7 +164,7 @@ def main():
         st.info("Creating SOP document in Microsoft Word format")
         json_data = json.loads(completion)["Steps"]
         start = time.time()
-        docx_file = checklist_docx_file(video_file.name, json_data, RESULTS_DIR, 1)
+        docx_file = helpers.checklist_docx_file(video_file.name, json_data, RESULTS_DIR, 1)
         elapsed = time.time() - start
         st.info("Completed in " + time.strftime(
             "%H:%M:%S.{}".format(str(elapsed % 1)[2:])[:15], time.gmtime(elapsed)))

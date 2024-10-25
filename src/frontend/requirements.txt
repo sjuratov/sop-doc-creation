@@ -5,6 +5,7 @@ asttokens==2.4.1
 attrs==24.2.0
 audioread==3.0.1
 azure-cognitiveservices-speech==1.40.0
+azure-identity==1.18.0
 blinker==1.8.2
 cachetools==5.4.0
 certifi==2024.7.4
@@ -47,7 +48,7 @@ msgpack==1.0.8
 narwhals==1.4.0
 numba==0.60.0
 numpy==1.26.4
-openai==1.40.6
+openai==1.52.0
 opencv-python-headless==4.10.0.84
 packaging==24.1
 pandas==2.2.2

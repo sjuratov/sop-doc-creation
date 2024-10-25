@@ -8,8 +8,17 @@
         "description": "Name of the the environment which is used to generate a short unique hash used in all resources."
       }
     },
+    "principalId": {
+      "value": "${AZURE_PRINCIPAL_ID}"
+    },
     "location": {
       "value": "${AZURE_LOCATION}"
+    },
+    "runningOnGh": {
+      "value": "${GITHUB_ACTIONS}"
+    },
+    "runningOnAdo": {
+      "value": "${TF_BUILD}"
     }
   }
 }

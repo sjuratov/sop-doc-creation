@@ -34,6 +34,19 @@ param storageAccountName string = ''
 @description('Tags to be applied to resources.')
 param tags object = { 'azd-env-name': environmentName }
 
+@description('Whether the deployment is running on GitHub Actions')
+param runningOnGh string = ''
+
+@description('Whether the deployment is running on Azure DevOps Pipeline')
+param runningOnAdo string = ''
+
+@description('Id of the user or app to assign application roles')
+param principalId string = ''
+var principalType = empty(runningOnGh) && empty(runningOnAdo) ? 'User' : 'ServicePrincipal'
+
+param openAiServiceName string = ''
+param speechServiceName string = ''
+
 // Load abbreviations from JSON file
 var abbrs = loadJsonContent('./abbreviations.json')
 // Generate a unique token for resources
@@ -46,12 +59,21 @@ resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   tags: tags
 }
 
+// ------------------------
+// [ User Assigned Identity for WebApp to avoid circular dependency ]
+module webIdentity './modules/webapp/identity.bicep' = {
+  name: 'webIdentity'
+  scope: resourceGroup
+  params: {
+    location: location
+    identityName: 'webapp-${resourceToken}'
+  }
+}
 
 // ------------------------
 // [ Array of OpenAI Model deployments ]
 param aoaiGpt4ModelName string= 'gpt-4o'
 param aoaiGpt4ModelVersion string = '2024-05-13'
-// var aoaiDeploymentName = '${aoaiGpt4ModelName}-${aoaiGpt4ModelVersion}'
 
 param aoaiEmbeddingsName string = 'text-embedding-ada-002'
 param aoaiEmbeddingsVersion string  = '2'
@@ -83,13 +105,89 @@ param deployments array = [
   }
 ]
 
-module aiServices 'modules/ai/cognitiveservices.bicep' = {
-  name: 'aiServices'
+var openAiDeployments = [
+  {
+    name:  '${aoaiGpt4ModelName}-${aoaiGpt4ModelVersion}'
+    model: {
+      format: 'OpenAI'
+      name: aoaiGpt4ModelName
+      version: aoaiGpt4ModelVersion
+    }
+    sku: {
+      name: 'GlobalStandard'
+      capacity: 30
+    }
+  }
+  {
+    name: aoaiEmbeddingsName
+    model: {
+      format: 'OpenAI'
+      name: aoaiEmbeddingsName
+      version: aoaiEmbeddingsVersion
+    }
+    sku: {
+      name: 'Standard'
+      capacity: 120
+    }
+  }
+]
+
+// https://azure.github.io/Azure-Verified-Modules/specs/bicep/
+// https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-best-practices/resource-abbreviations
+module openAi 'br/public:avm/res/cognitive-services/account:0.8.0' = {
+  name: 'openai'
   scope: resourceGroup
   params: {
-    resourceToken: resourceToken
-    tags: tags
-    deployments: deployments
+    name: !empty(openAiServiceName) ? openAiServiceName : 'oai-${resourceToken}'
+    location: location
+    tags: union(tags, { 'azd-service-name': 'aoai-${tags['azd-env-name']}' })
+    kind: 'OpenAI'
+    customSubDomainName: !empty(openAiServiceName) ? openAiServiceName : 'oai-${resourceToken}'
+    sku: 'S0'
+    deployments: openAiDeployments
+    disableLocalAuth: false
+    publicNetworkAccess: 'Enabled'
+    networkAcls: {}
+    roleAssignments: [
+      {
+        roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
+        principalId: principalId
+        principalType: principalType
+      }
+      {
+        roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
+        principalId: webIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+      }
+    ]
+  }
+}
+
+
+module speech 'br/public:avm/res/cognitive-services/account:0.8.0' = {
+  name: 'speech'
+  scope: resourceGroup
+  params: {
+    name: !empty(speechServiceName) ? speechServiceName : 'spch-${resourceToken}'
+    location: location
+    tags: union(tags, { 'azd-service-name': 'speech-${tags['azd-env-name']}' })
+    kind: 'SpeechServices'
+    sku: 'S0'
+    disableLocalAuth: false
+    publicNetworkAccess: 'Enabled'
+    networkAcls: {}
+    roleAssignments: [
+      {
+        roleDefinitionIdOrName: 'Cognitive Services Speech User'
+        principalId: principalId
+        principalType: principalType
+      }
+      {
+        roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
+        principalId: webIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+      }
+    ]
   }
 }
 
@@ -113,18 +211,6 @@ module monitoring 'modules/monitoring/monitor.bicep' = {
   }
 }
 
-// module functionApp 'modules/functionapp/functionapp.bicep' = {
-//   name: 'functionApp'
-//   scope: resourceGroup
-//   params: {
-//     resourceToken: resourceToken
-//     storageAccountName: storageAccount.outputs.storageAccountName
-//     functionAppName: 'funcapp-${resourceToken}'
-//     appInsightsConnectionString: monitoring.outputs.appInsightsConnectionString
-//     tags: tags
-//   }
-// }
-
 module webApp 'modules/webapp/webapp.bicep' = {
   name: 'webapp'
   scope: resourceGroup
@@ -133,20 +219,19 @@ module webApp 'modules/webapp/webapp.bicep' = {
     appInsightsConnectionString: monitoring.outputs.appInsightsConnectionString
     tags: tags
     resourceToken: resourceToken
-    azureOpenAIName: aiServices.outputs.aoaiName
+    azureOpenAIName: openAi.outputs.name
     azureModelDeployment: deployments[0].name
-    azureSpeechName: aiServices.outputs.speechName
+    azureSpeechName: speech.outputs.name
+    identityName: webIdentity.outputs.name
   }
-  // dependsOn: [
-  //   functionApp
-  // ]
 }
 
-output AZURE_OPENAI_ENDPOINT string = aiServices.outputs.aoaiEndpoint
-output AZURE_OPENAI_ACCOUNT_NAME string = aiServices.outputs.aoaiName
+output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
+output AZURE_OPENAI_ACCOUNT_NAME string = openAi.outputs.name
 output AZURE_OPENAI_DEPLOYMENT_NAME string = deployments[0].name
 
-output AZURE_SPEECH_REGION   string = aiServices.outputs.speechRegion
-output AZURE_SPEECH_ACCOUNT_NAME  string = aiServices.outputs.speechName
+output AZURE_SPEECH_REGION   string = speech.outputs.location
+output AZURE_SPEECH_ACCOUNT_NAME  string = speech.outputs.name
+output AZURE_SPEECH_RESOURCE_ID string = speech.outputs.resourceId
 
 output AZURE_WEBAPP_ENDPOINT string = webApp.outputs.WEB_URI

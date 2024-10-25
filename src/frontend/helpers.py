@@ -1,74 +1,78 @@
-import azure.cognitiveservices.speech as speechsdk
+"""
+This module contains helper functions for the frontend of the application.
+The functions are used to perform various tasks such as downloading files, displaying video frames,
+extracting audio from video files, displaying
+audio amplitude waveforms, transcribing audio files using Azure Speech-to-Text service, and
+sending prompts to the GPT-4o model via Azure OpenAI.
+"""
+
+import os
 import base64
-import cv2
 import datetime
 import json
-import librosa
-import matplotlib.pyplot as plt
-import openai
-import os
-import pandas as pd
-import requests
-import sys
 import time
 import re
+from mimetypes import guess_type
 
+import requests
+import librosa
+import cv2
+import streamlit as st
+import matplotlib.pyplot as plt
+import pandas as pd
 
 from docx import Document
 from docx.shared import Inches
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from io import BytesIO
-from IPython.display import Audio, Video, FileLink, Image
-from mimetypes import guess_type
 from moviepy.editor import VideoFileClip
 from openai import AzureOpenAI
-from pydub import AudioSegment
-from wordcloud import WordCloud
-
-from pytubefix import YouTube
-from pytubefix.cli import on_progress
-
-import streamlit as st
-
 from dotenv import find_dotenv, load_dotenv
 
-# Checking if the azd config file exists.
-# If so, use it to source env variables
-config_path = '../../.azure/config.json'
-default_environment = None
+import azure.cognitiveservices.speech as speechsdk
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
-if os.path.exists(config_path):
-    with open(config_path, 'r') as config_file:
+# Checking if the azd config file exists.
+# If so, use it to source env variables for local execution
+CONFIG_PATH = '../../.azure/config.json'
+
+if os.path.exists(CONFIG_PATH):
+    with open(CONFIG_PATH, 'r', encoding='utf-8') as config_file:
         config_data = json.load(config_file)
         default_environment = config_data.get('defaultEnvironment')
         if default_environment:
             print(f"Default Environment used: {default_environment}")
+            load_dotenv(f"../../.azure/{default_environment}/.env",override=True)
         else:
             print("defaultEnvironment parameter not found in the config file.")
+            load_dotenv(find_dotenv(),override=True)
 else:
-    print(f"Config file {config_path} does not exist. Not local execuriton or 'azd up' has not been executed.")
-
-# If azd config file not found, use the standard .env file
-if default_environment:
-    load_dotenv(f"../../.azure/{default_environment}/.env",override=True)
-else:
+    print(f"Config file {CONFIG_PATH} does not exist. Not local execuriton or 'azd up' has not been executed.")
     load_dotenv(find_dotenv(),override=True)
 
 # Azure Speech services
 AZURE_SPEECH_KEY = os.getenv("AZURE_SPEECH_KEY")
 AZURE_SPEECH_REGION = os.getenv("AZURE_SPEECH_REGION")
+AZURE_SPEECH_RESOURCE_ID = os.getenv("AZURE_SPEECH_RESOURCE_ID")
 
 # Azure OpenAI
 AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
-AZURE_OPENAI_KEY = os.getenv("AZURE_OPENAI_KEY")
 AZURE_OPENAI_DEPLOYMENT_NAME = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
+
+if os.getenv("AZURE_OPENAI_KEY"):
+    print("Using Azure OpenAI Key")
+    OPEANAI_CLIENT = AzureOpenAI(azure_endpoint=AZURE_OPENAI_ENDPOINT,
+                        api_key=os.getenv("AZURE_OPENAI_KEY"),
+                        api_version="2024-02-01")
+else:
+    print("Using Azure AD Token Provider")
+    OPEANAI_CLIENT = AzureOpenAI(azure_endpoint=AZURE_OPENAI_ENDPOINT,
+                        azure_ad_token_provider=get_bearer_token_provider(DefaultAzureCredential(),"https://cognitiveservices.azure.com/.default"),
+                        api_version="2024-06-01")
 
 print(f"Azure OpenAI endpoint (helpers): {AZURE_OPENAI_ENDPOINT}")
 
+#
 def download_file(url, path):
-    #import requests
-    #import os
-
     if not os.path.exists(os.path.dirname(path)):
         try:
             os.makedirs(os.path.dirname(path))
@@ -83,60 +87,11 @@ def download_file(url, path):
     except Exception as e:
         print(f"Error: {e}")
 
-def download_youtube_video(url, path):
-    # from pytubefix import YouTube
-    # from pytubefix.cli import on_progress
-    # import os
-
-    if not os.path.exists(os.path.dirname(path)):
-        try:
-            os.makedirs(os.path.dirname(path))
-        except Exception as e:
-            print(f"Error: {e}")
-
-    try:
-        youtube = YouTube(url, on_progress_callback = on_progress)
-        video = youtube.streams.get_highest_resolution()
-        video.download(path)
-        return video
-    except Exception as e:
-        print(f"Error: {e}")
-
-def display_file_info(file_name):
-    """
-    Display the size, and last modification date and time of a specified file.
-
-    Parameters:
-    file_path (str): The path to the file whose information is to be displayed.
-
-    Returns:
-    file_name, file_size, formatted_time
-    """
-    
-    if not os.path.isfile(file_name):
-        print(f"The file at {file_name} does not exist.")
-        return
-
-    # Get the file size
-    file_size_bytes = os.path.getsize(file_name)
-    file_size_mb = file_size_bytes / (1024 * 1024)
-    
-    # Get the last modification time
-    modification_time = os.path.getmtime(file_name)
-    
-    # Convert modification time to a readable format
-    formatted_time = datetime.datetime.fromtimestamp(modification_time).strftime('%Y-%m-%d %H:%M:%S')
-    
-    # Display the file information
-    print(f"File: {file_name}")
-    print(f"Size: {file_size_mb:.2f} MB")
-    print(f"Last Modified: {formatted_time}")
-    
-    return file_name, file_size_mb, formatted_time
-
+#
 def display_video_frames(video_file):
     """
-    Display a specified number of equally time-distributed frames from a video file in their temporal order.
+    Display a specified number of equally time-distributed frames from a video file 
+    in their temporal order.
 
     Parameters:
     video_path (str): Path to the MP4 video file.
@@ -145,20 +100,20 @@ def display_video_frames(video_file):
     Returns:
     None
     """
-    
+
     num_frames=10
-    
+
     # Open the video file
-    cap = cv2.VideoCapture(video_file)
-    
+    cap = cv2.VideoCapture(video_file)  # pylint: disable=no-member
+
     # Check if the video was opened successfully
     if not cap.isOpened():
         print("Error: Could not open video file.")
         return
 
     # Get the total number of frames
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) # pylint: disable=no-member
+
     if total_frames < num_frames:
         print(f"Error: The video contains only {total_frames} frames, which is less than {num_frames}.")
         cap.release()
@@ -166,43 +121,42 @@ def display_video_frames(video_file):
 
     # Calculate interval to select frames
     interval = total_frames // num_frames
-    
+
     # Generate equally distributed frame indices
     frame_indices = [i * interval for i in range(num_frames)]
 
     # Set up the plot for displaying frames
     plt.figure(figsize=(15, 10))
-    
+
     for i, frame_idx in enumerate(frame_indices):
         # Set the video position to the frame index
-        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
-        
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)# pylint: disable=no-member
+
         # Read the frame
         ret, frame = cap.read()
-        
+
         if not ret:
             print(f"Error: Could not read frame at index {frame_idx}.")
             continue
-        
+
         # Convert frame from BGR to RGB
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)# pylint: disable=no-member
+
         # Plot the frame
         plt.subplot(2, 5, i + 1)  # Adjust subplot grid as needed
         plt.imshow(frame_rgb)
         plt.title(f"Frame {frame_idx}")
         plt.axis('off')
-    
+
     # Show all frames
     plt.tight_layout()
-    #plt.show()
-    # st.divider()
     st.markdown("#### Video Frames")
     st.pyplot(plt)
-    
+
     # Release the video capture object
     cap.release()
 
+#
 def get_audio_file(video_file, RESULTS_DIR):
     """   
     Extracts the audio track from a given video file and saves it as a WAV file.
@@ -220,23 +174,23 @@ def get_audio_file(video_file, RESULTS_DIR):
     str: The full path to the saved audio file in WAV format. The path includes the directory
          specified by `AUDIO_DIR` and the filename derived from the input video file.
     """
-    
+
     print("Audio extraction from video file {video_file}\n")
     start = time.time()
 
     audio_file = os.path.join(
         RESULTS_DIR,
         os.path.splitext(os.path.basename(video_file))[0] + ".wav")
-    
+
     # Loading video file
     video_clip = VideoFileClip(video_file)
     audio_clip = video_clip.audio
-    
+
     # Saving audio file
     audio_clip.write_audiofile(audio_file)
     audio_clip.close()
     video_clip.close()
-    
+
     # End
     print("\nDone")
     elapsed = time.time() - start
@@ -245,6 +199,7 @@ def get_audio_file(video_file, RESULTS_DIR):
 
     return audio_file
 
+#
 def display_amplitude(audio_file):
     """
     This function reads an audio file, computes its amplitude waveform, and visualizes
@@ -259,12 +214,12 @@ def display_amplitude(audio_file):
     None: This function does not return any value. It displays a matplotlib figure showing
           the amplitude of the audio signal.
     """
-    
+
     plt.figure(figsize=(15, 5))
-    
+
     # Reading the sound file
     y, sr = librosa.load(audio_file)
-    
+
     # Amplitude plot
     librosa.display.waveshow(y, sr=sr)
     title = f"Waveplot of {audio_file}"
@@ -275,6 +230,7 @@ def display_amplitude(audio_file):
     # plt.show()
     st.pyplot(plt)
 
+#
 def azure_text_to_speech(audio_filepath, locale, disp=False):
     """
     Transcribes speech from an audio file using Azure Speech-to-Text (TTS) service.
@@ -305,8 +261,17 @@ def azure_text_to_speech(audio_filepath, locale, disp=False):
 
     # Config
     audio_config = speechsdk.audio.AudioConfig(filename=audio_filepath)
-    speech_config = speechsdk.SpeechConfig(subscription=AZURE_SPEECH_KEY,
-                                           region=AZURE_SPEECH_REGION)
+
+    # https://learn.microsoft.com/en-us/azure/ai-services/speech-service/how-to-configure-azure-ad-auth?tabs=portal&pivots=programming-language-python
+    if AZURE_SPEECH_KEY:
+        print("Using Azure Speech Key")
+        speech_config = speechsdk.SpeechConfig(subscription=AZURE_SPEECH_KEY,region=AZURE_SPEECH_REGION)
+    else:
+        print("Using Azure AD Token Provider for Speech")
+        token = DefaultAzureCredential().get_token("https://cognitiveservices.azure.com/.default").token
+        auth_token = f"aad#{os.getenv('AZURE_SPEECH_RESOURCE_ID')}#{token}"
+        speech_config = speechsdk.SpeechConfig(auth_token=auth_token, region=AZURE_SPEECH_REGION)
+
     # Timestamps are required
     speech_config.request_word_level_timestamps()
     speech_config.speech_recognition_language = locale
@@ -356,14 +321,15 @@ def azure_text_to_speech(audio_filepath, locale, disp=False):
 
     # Connect callbacks to the events fired by the speech recognizer
     speech_recognizer.recognizing.connect(
-        lambda evt: logger.debug("RECOGNIZING: {}".format(evt)))
+        lambda evt: logger.debug("RECOGNIZING: {}".format(evt))) # pylint: disable=undefined-variable
     speech_recognizer.recognized.connect(parse_azure_result)
     speech_recognizer.session_started.connect(
-        lambda evt: logger.debug("SESSION STARTED: {}".format(evt)))
+        lambda evt: logger.debug("SESSION STARTED: {}".format(evt))) # pylint: disable=undefined-variable
     speech_recognizer.session_stopped.connect(
-        lambda evt: logger.debug("SESSION STOPPED {}".format(evt)))
+        lambda evt: logger.debug("SESSION STOPPED {}".format(evt))) # pylint: disable=undefined-variable
     speech_recognizer.canceled.connect(
-        lambda evt: logger.debug("CANCELED {}".format(evt)))
+        lambda evt: logger.debug("CANCELED {}".format(evt))) # pylint: disable=undefined-variable
+
     # stop continuous recognition on either session stopped or canceled events
     speech_recognizer.session_stopped.connect(stop_cb)
     speech_recognizer.canceled.connect(stop_cb)
@@ -380,35 +346,40 @@ def azure_text_to_speech(audio_filepath, locale, disp=False):
 
     return transcript_display_list, confidence_list, words
 
-def text_search(text):
+#
+def display_file_info(file_name):
     """
-    Searches for a specific word in a DataFrame and retrieves its offset and duration.
-
-    This function searches for a given word in a DataFrame containing transcription data. 
-    It returns the rows of the DataFrame that match the specified word, along with the 
-    offset and duration associated with that word. The offset and duration are extracted 
-    from the DataFrame for the first occurrence of the word.
+    Display the size, and last modification date and time of a specified file.
 
     Parameters:
-    text (str): The word or phrase to search for in the DataFrame. The search is case-sensitive 
-                and matches exactly.
+    file_path (str): The path to the file whose information is to be displayed.
 
     Returns:
-    tuple: A tuple containing:
-        - df_res (DataFrame): The rows of the DataFrame where the 'Word' column matches the 
-                              specified text.
-        - offset_secs (float): The offset time in seconds for the first occurrence of the word.
-        - duration_secs (float): The duration in seconds for the first occurrence of the word.
-
+    file_name, file_size, formatted_time
     """
 
-    # Search
-    df_res = df[df["Word"] == text]
-    offset_secs = df_res["Offset_in_secs"].values[0]
-    duration_secs = df_res["Duration_in_secs"].values[0]
+    if not os.path.isfile(file_name):
+        print(f"The file at {file_name} does not exist.")
+        return
 
-    return df_res, offset_secs, duration_secs
+    # Get the file size
+    file_size_bytes = os.path.getsize(file_name)
+    file_size_mb = file_size_bytes / (1024 * 1024)
 
+    # Get the last modification time
+    modification_time = os.path.getmtime(file_name)
+
+    # Convert modification time to a readable format
+    formatted_time = datetime.datetime.fromtimestamp(modification_time).strftime('%Y-%m-%d %H:%M:%S')
+
+    # Display the file information
+    print(f"File: {file_name}")
+    print(f"Size: {file_size_mb:.2f} MB")
+    print(f"Last Modified: {formatted_time}")
+
+    return file_name, file_size_mb, formatted_time
+
+#
 def ask_gpt4o(prompt, sop_text):
     """
     Sends a prompt to the GPT-4 model via Azure OpenAI and returns the response.
@@ -423,15 +394,7 @@ def ask_gpt4o(prompt, sop_text):
         str: The content of the response from the GPT-4o model.
     """
     model = AZURE_OPENAI_DEPLOYMENT_NAME
-    
-    # Azure OpenAI client
-    client = AzureOpenAI(azure_endpoint=AZURE_OPENAI_ENDPOINT,
-                         api_key=AZURE_OPENAI_KEY,
-                         api_version="2024-02-01")
-    
-    # client = AzureOpenAI(azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-    #                      api_key=os.getenv("AZURE_OPENAI_KEY"),
-    #                      api_version="2024-02-01")
+    client = OPEANAI_CLIENT
 
     # Response with the json object property
     response = client.chat.completions.create(
@@ -456,6 +419,7 @@ def ask_gpt4o(prompt, sop_text):
 
     return response.choices[0].message.content
 
+#
 def get_video_info(video_file):
     """
     Prints the length, number of frames, and frames per second (FPS) of a video file.
@@ -470,19 +434,19 @@ def get_video_info(video_file):
     Returns:
     duration, total of frames and fps
     """
-    
+
     # Open the video file
-    cap = cv2.VideoCapture(video_file)
+    cap = cv2.VideoCapture(video_file) # pylint: disable=no-member
     print(f"Video file: {video_file}")
-    
+
     if not cap.isOpened():
         print(f"Error: Cannot open video file {video_file}")
         return
 
     # Get the total number of frames
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) # pylint: disable=no-member
     # Get the frames per second (FPS)
-    fps = cap.get(cv2.CAP_PROP_FPS)
+    fps = cap.get(cv2.CAP_PROP_FPS) # pylint: disable=no-member
     # Calculate the duration of the video in seconds
     duration = total_frames / fps
     # Convert duration to hours, minutes, and seconds
@@ -498,9 +462,10 @@ def get_video_info(video_file):
 
     # Release the video capture object
     cap.release()
-    
+
     return duration, total_frames, fps
 
+#
 def get_video_frame(video_file, offset_in_secs, FRAMES_DIR):
     """
     Extracts a frame from a video file at a specified offset in seconds and saves it as an image file.
@@ -512,9 +477,9 @@ def get_video_frame(video_file, offset_in_secs, FRAMES_DIR):
     Returns:
         str: Path to the saved frame image file.
     """
-    
+
     # Open the video file
-    cap = cv2.VideoCapture(video_file)
+    cap = cv2.VideoCapture(video_file) # pylint: disable=no-member
 
     # Check if the video opened successfully
     if not cap.isOpened():
@@ -522,13 +487,13 @@ def get_video_frame(video_file, offset_in_secs, FRAMES_DIR):
         return
 
     # Get the frames per second (fps) of the video
-    fps = cap.get(cv2.CAP_PROP_FPS)
+    fps = cap.get(cv2.CAP_PROP_FPS) # pylint: disable=no-member
 
     # Calculate the frame number to capture
     frame_number = int(offset_in_secs * fps)
 
     # Set the video to start at the calculated frame
-    cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+    cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number) # pylint: disable=no-member
 
     # Read the frame
     ret, frame = cap.read()
@@ -545,13 +510,14 @@ def get_video_frame(video_file, offset_in_secs, FRAMES_DIR):
         f"{video_file}_frame_{str(offset_in_secs)}.png"
     )
     #frame_file = re.sub(r"[^a-zA-Z0-9 \/.\\\-_]", "", frame_file)
-    cv2.imwrite(frame_file, frame)
+    cv2.imwrite(frame_file, frame) # pylint: disable=no-member
 
     # Release the video capture object
     cap.release()
 
     return frame_file
 
+#
 def local_image_to_data_url(image_path):
     """
     Convert a local image file to a data URL.
@@ -567,7 +533,7 @@ def local_image_to_data_url(image_path):
         str: A data URL containing the base64-encoded image data.
 
     """
-    
+
     mime_type, _ = guess_type(image_path)
 
     if mime_type is None:
@@ -578,6 +544,7 @@ def local_image_to_data_url(image_path):
 
     return f"data:{mime_type};base64,{base64_encoded_data}"
 
+#
 def gpt4o_imagefile(image_file, prompt, model):
     """
     Analyze an image file using Azure OpenAI's GPT-4 model.
@@ -594,12 +561,8 @@ def gpt4o_imagefile(image_file, prompt, model):
     Returns:
         dict: The response from Azure OpenAI's GPT-4 model containing the analysis results.
     """
-    
-    client = AzureOpenAI(
-        api_key=AZURE_OPENAI_KEY,
-        api_version="2024-05-01-preview",
-        base_url=f"{AZURE_OPENAI_ENDPOINT}/openai/deployments/{model}",
-    )
+
+    client = OPEANAI_CLIENT
 
     response = client.chat.completions.create(
         model=model,
@@ -625,6 +588,7 @@ def gpt4o_imagefile(image_file, prompt, model):
 
     return response
 
+#
 def checklist_docx_file(video_file, json_data, RESULTS_DIR, nb_images_per_step=3):
     """
     Generates a DOCX file containing a checklist based on video frames and provided JSON data.
@@ -644,11 +608,11 @@ def checklist_docx_file(video_file, json_data, RESULTS_DIR, nb_images_per_step=3
     model = AZURE_OPENAI_DEPLOYMENT_NAME
 
     print("Generating checklist file...")
-    
+
     image_size = 5 # size of each image that will be inserted
 
     FRAMES_DIR = f"{RESULTS_DIR}/frames"
-    
+
     # Filename
     docx_file = os.path.join(
         RESULTS_DIR,
@@ -667,9 +631,9 @@ def checklist_docx_file(video_file, json_data, RESULTS_DIR, nb_images_per_step=3
     # Heading level 1
     doc.add_heading(f"Checklist document for video: {video_file}", level=1)
     doc.add_paragraph("")
-    
+
     duration = 0  # do not change
-    
+
     # Process each step from the JSON data
     for idx, step in enumerate(json_data, start=1):
         # get values
@@ -678,7 +642,7 @@ def checklist_docx_file(video_file, json_data, RESULTS_DIR, nb_images_per_step=3
         keywords = step['Keywords']
         offset_secs = step['Offset_in_secs']
         duration = round(step['Offset_in_secs'] - duration, 3)
-        
+
         # Add checklist step details to the document
         doc.add_heading(f"{idx} Checklist step {step['Step']}: {title}", level=2)
         doc.add_paragraph("")
@@ -695,20 +659,20 @@ def checklist_docx_file(video_file, json_data, RESULTS_DIR, nb_images_per_step=3
                 int(offset_secs) + img_idx * 3,
                 FRAMES_DIR)            
             doc.add_picture(frame_file, width=Inches(image_size))
-        
+
             # Adding the automatic caption of the frame
             caption_image = gpt4o_imagefile(frame_file, "Generate a detailled caption of this image.", model)
             caption = caption_image.choices[0].message.content
             doc.add_paragraph(f"- Automatic frame caption: {caption}")
-            
+
             # OCR of the frame
             ocr_image = gpt4o_imagefile(frame_file, "Print all the extracted text from this image separated with a comma", model)
             ocr = ocr_image.choices[0].message.content
             doc.add_paragraph(f"- Automatic OCR: {ocr}")
-            
+
             # Deleting the frame file (optional)
             os.remove(frame_file)
-    
+
         # Add a blank line for spacing
         doc.add_page_break()
 
@@ -721,9 +685,8 @@ def checklist_docx_file(video_file, json_data, RESULTS_DIR, nb_images_per_step=3
 
     # Save the document
     doc.save(docx_file)
-    
+
     # End
     print(f"\nDone. Checklist file has been saved to {docx_file}")
 
     return docx_file
-

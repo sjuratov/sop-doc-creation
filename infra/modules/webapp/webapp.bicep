@@ -10,6 +10,7 @@ param storageAccountName string
 @description('App Ingisghts Connection String')
 param appInsightsConnectionString string
 
+param identityName string
 param tags object = {}
 param azureOpenAIName string
 param azureSpeechName string
@@ -27,6 +28,10 @@ resource openAIService 'Microsoft.CognitiveServices/accounts@2023-05-01' existin
 
 resource speechService 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = {
   name: azureSpeechName
+}
+
+resource webIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
+  name: identityName
 }
 
 // --------------------------------------
@@ -64,7 +69,10 @@ resource web 'Microsoft.Web/sites@2022-03-01' = {
     httpsOnly: true
   }
   identity: {
-    type: 'SystemAssigned'
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${webIdentity.id}': {}
+    }
   }
 
   resource appSettings 'config' = {
@@ -74,12 +82,12 @@ resource web 'Microsoft.Web/sites@2022-03-01' = {
       ENABLE_ORYX_BUILD: 'true'
       APPLICATIONINSIGHTS_CONNECTION_STRING: appInsightsConnectionString
       AzureWebJobsStorage: storageAccountConnectionString
+      AZURE_CLIENT_ID: webIdentity.properties.clientId
       // Must match the main bicep outputs for local execution compatibility
-      AZURE_SPEECH_KEY: '${speechService.listKeys().key1}'
-      AZURE_SPEECH_REGION: speechService.location
       AZURE_OPENAI_ENDPOINT: openAIService.properties.endpoint
-      AZURE_OPENAI_KEY: '${openAIService.listKeys().key1}'
       AZURE_OPENAI_DEPLOYMENT_NAME: azureModelDeployment
+      AZURE_SPEECH_RESOURCE_ID: speechService.id
+      AZURE_SPEECH_REGION: speechService.location
     }
   }
 
