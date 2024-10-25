@@ -56,10 +56,10 @@ azd up
 Once infrastructure is provisioned, .azure/<env_name>/.env will be automatically updated with relevant values.
 
 <h3>
-Deploy the infrastructure using deployment button
+Deploy the infrastructure using deployment button (NOT IMPLEMENTED)
 </h3>
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsjuratov%2Fsop-doc-creation%2Fmain%2Finfra%2Fmain.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/)
 
 <h2>
 ENV Variables
