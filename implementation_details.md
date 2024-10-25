@@ -62,7 +62,7 @@ The env variables are read from the azd config file located at:
 If azd has not been executed, the application will try to source the standard .env file.
 
 <h3>
-Azure Speech services environment variables
+Azure AI Speech environment variables
 </h3>
 
 AZURE_SPEECH_ACCOUNT_NAME
@@ -84,7 +84,7 @@ AZURE_OPENAI_ENDPOINT
 AZURE_OPENAI_KEY
 
 <h2>
-Run application as follow 
+Run application
 </h2>
 
 ```
