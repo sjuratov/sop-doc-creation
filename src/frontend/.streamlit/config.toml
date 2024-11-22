@@ -1,0 +1,6 @@
+[client]
+# toolbarMode = "viewer"
+toolbarMode = "minimal"
+
+[server]
+headless = true

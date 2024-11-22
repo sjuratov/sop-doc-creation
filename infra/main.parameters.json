@@ -19,6 +19,9 @@
     },
     "runningOnAdo": {
       "value": "${TF_BUILD}"
+    },
+    "appExists": {
+      "value": "${SERVICE_APP_RESOURCE_EXISTS=false}"
     }
   }
 }

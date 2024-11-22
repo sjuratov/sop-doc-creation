@@ -88,75 +88,6 @@ def download_file(url, path):
         print(f"Error: {e}")
 
 #
-def display_video_frames(video_file):
-    """
-    Display a specified number of equally time-distributed frames from a video file 
-    in their temporal order.
-
-    Parameters:
-    video_path (str): Path to the MP4 video file.
-    num_frames (int): Number of equally distributed frames to display. Default is 10.
-
-    Returns:
-    None
-    """
-
-    num_frames=10
-
-    # Open the video file
-    cap = cv2.VideoCapture(video_file)  # pylint: disable=no-member
-
-    # Check if the video was opened successfully
-    if not cap.isOpened():
-        print("Error: Could not open video file.")
-        return
-
-    # Get the total number of frames
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) # pylint: disable=no-member
-
-    if total_frames < num_frames:
-        print(f"Error: The video contains only {total_frames} frames, which is less than {num_frames}.")
-        cap.release()
-        return
-
-    # Calculate interval to select frames
-    interval = total_frames // num_frames
-
-    # Generate equally distributed frame indices
-    frame_indices = [i * interval for i in range(num_frames)]
-
-    # Set up the plot for displaying frames
-    plt.figure(figsize=(15, 10))
-
-    for i, frame_idx in enumerate(frame_indices):
-        # Set the video position to the frame index
-        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)# pylint: disable=no-member
-
-        # Read the frame
-        ret, frame = cap.read()
-
-        if not ret:
-            print(f"Error: Could not read frame at index {frame_idx}.")
-            continue
-
-        # Convert frame from BGR to RGB
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)# pylint: disable=no-member
-
-        # Plot the frame
-        plt.subplot(2, 5, i + 1)  # Adjust subplot grid as needed
-        plt.imshow(frame_rgb)
-        plt.title(f"Frame {frame_idx}")
-        plt.axis('off')
-
-    # Show all frames
-    plt.tight_layout()
-    st.markdown("#### Video Frames")
-    st.pyplot(plt)
-
-    # Release the video capture object
-    cap.release()
-
-#
 def get_audio_file(video_file, RESULTS_DIR):
     """   
     Extracts the audio track from a given video file and saves it as a WAV file.
@@ -198,37 +129,6 @@ def get_audio_file(video_file, RESULTS_DIR):
         "%H:%M:%S.{}".format(str(elapsed % 1)[2:])[:15], time.gmtime(elapsed)))
 
     return audio_file
-
-#
-def display_amplitude(audio_file):
-    """
-    This function reads an audio file, computes its amplitude waveform, and visualizes
-    it using a waveplot. The plot shows the variation in amplitude over time, providing
-    a graphical representation of the audio signal.
-
-    Parameters:
-    audio_file (str): The full path to the audio file to be visualized. The file should be
-                      in a format supported by `librosa`, such as WAV or MP3.
-
-    Returns:
-    None: This function does not return any value. It displays a matplotlib figure showing
-          the amplitude of the audio signal.
-    """
-
-    plt.figure(figsize=(15, 5))
-
-    # Reading the sound file
-    y, sr = librosa.load(audio_file)
-
-    # Amplitude plot
-    librosa.display.waveshow(y, sr=sr)
-    title = f"Waveplot of {audio_file}"
-    plt.title(title, fontdict=dict(size=15))
-    plt.xlabel("Time", fontdict=dict(size=12))
-    plt.ylabel("Amplitude", fontdict=dict(size=12))
-
-    # plt.show()
-    st.pyplot(plt)
 
 #
 def azure_text_to_speech(audio_filepath, locale, disp=False):

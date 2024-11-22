@@ -3,7 +3,9 @@ name: sop-doc-creation
 infra:
   provider: bicep
 services:
-  web-app:
-    project: ./src/frontend
-    language: py
-    host: appservice
+    app:
+        project: src/frontend
+        host: containerapp
+        language: python
+        docker:
+            path: Dockerfile
