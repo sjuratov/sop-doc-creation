@@ -2,6 +2,11 @@
 name: sop-doc-creation
 infra:
   provider: bicep
+  # parameters:
+  #     environmentName:
+  #       prompt: true
+  #       type: string
+  #       description: 'Name of the the environment which is used to generate a short unique hash used in all resources:'
 services:
     app:
         project: src/frontend

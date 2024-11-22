@@ -6,8 +6,10 @@ param tags object = {}
 param env object = {}
 
 param identityId string
-// param identityName string
 param containerRegistryName string
+
+@description('The defaultBaseIamge to be deployed. Usually will be used as the first image to be deployed with azd up, or t')
+param defaultBaseImage string = 'soppublicregistry.azurecr.io/sopgenie:latest'
 
 param logAnalyticsWorkspaceName string
 
@@ -39,6 +41,7 @@ resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2022-10-01'
   }
 }
 
+var image = fetchLatestImage.outputs.?containers[?0].?image ?? defaultBaseImage
 resource app 'Microsoft.App/containerApps@2023-04-01-preview' = {
   name: name
   location: location
@@ -65,7 +68,7 @@ resource app 'Microsoft.App/containerApps@2023-04-01-preview' = {
     template: {
       containers: [
         {
-          image: fetchLatestImage.outputs.?containers[?0].?image ?? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+          image: image
           name: 'main'
           env: [
             for key in objectKeys(env): {
@@ -91,3 +94,4 @@ output defaultDomain string = containerAppsEnvironment.properties.defaultDomain
 output name string = app.name
 output uri string = 'https://${app.properties.configuration.ingress.fqdn}'
 output id string = app.id
+output image string = image
