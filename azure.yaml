@@ -2,8 +2,15 @@
 name: sop-doc-creation
 infra:
   provider: bicep
+  # parameters:
+  #     environmentName:
+  #       prompt: true
+  #       type: string
+  #       description: 'Name of the the environment which is used to generate a short unique hash used in all resources:'
 services:
-  web-app:
-    project: ./src/frontend
-    language: py
-    host: appservice
+    app:
+        project: src/frontend
+        host: containerapp
+        language: python
+        docker:
+            path: Dockerfile

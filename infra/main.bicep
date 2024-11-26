@@ -1,10 +1,5 @@
 targetScope = 'subscription'
 
-@minLength(1)
-@maxLength(64)
-@description('Name of the the environment which is used to generate a short unique hash used in all resources.')
-param environmentName string
-
 // Commenting out the regions where the deployment failed for one or another reason
 @minLength(1)
 @description('Primary location for all resources (filtered on available regions for Azure Open AI Service).')
@@ -13,26 +8,19 @@ param environmentName string
   'southcentralus'
   'australiaeast'
   'canadaeast'
-  // 'eastus'
+  'eastus'
   'eastus2'
   'francecentral'
   'japaneast'
   'northcentralus'
-  // 'swedencentral'
+  'swedencentral'
   'switzerlandnorth'
-  // 'uksouth'
+  'uksouth'
 ])
 param location string
 
-
 @description('Name of the resource group. Leave blank to use default naming conventions.')
 param resourceGroupName string = ''
-
-@description('Name of the Storage resource. Leave blank to use default naming conventions.')
-param storageAccountName string = ''
-
-@description('Tags to be applied to resources.')
-param tags object = { 'azd-env-name': environmentName }
 
 @description('Whether the deployment is running on GitHub Actions')
 param runningOnGh string = ''
@@ -47,26 +35,38 @@ var principalType = empty(runningOnGh) && empty(runningOnAdo) ? 'User' : 'Servic
 param openAiServiceName string = ''
 param speechServiceName string = ''
 
-// Load abbreviations from JSON file
+// --------------------------------------------------
+// To accomodate the single click deployment from ARM
+@maxLength(64)
+@description('Name of the the environment which is used to generate a short unique hash used in all resources.')
+param environmentNameVar string
+param appExists bool = false
+
+
+var environmentName = empty(environmentNameVar) ? '' : environmentNameVar
+var tags = { 'azd-env-name': environmentName }
+
+var resourceGroupNameToUse = !empty(resourceGroupName) ? resourceGroupName : '${abbrs.resourcesResourceGroups}${environmentName}'
 var abbrs = loadJsonContent('./abbreviations.json')
-// Generate a unique token for resources
-var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
+// --------------------------------------------------
+
+var resourceToken = toLower(uniqueString(subscription().id, resourceGroupNameToUse, location))
 
 // Organize resources in a resource group
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
-  name: !empty(resourceGroupName) ? resourceGroupName : '${abbrs.resourcesResourceGroups}${environmentName}'
+  name: resourceGroupNameToUse
   location: location
   tags: tags
 }
 
 // ------------------------
 // [ User Assigned Identity for WebApp to avoid circular dependency ]
-module webIdentity './modules/webapp/identity.bicep' = {
-  name: 'webIdentity'
+module identity './modules/app/identity.bicep' = {
+  name: 'appIdentity'
   scope: resourceGroup
   params: {
     location: location
-    identityName: 'webapp-${resourceToken}'
+    identityName: 'id-${resourceToken}'
   }
 }
 
@@ -77,33 +77,6 @@ param aoaiGpt4ModelVersion string = '2024-05-13'
 
 param aoaiEmbeddingsName string = 'text-embedding-ada-002'
 param aoaiEmbeddingsVersion string  = '2'
-
-param deployments array = [
-  {
-    name:  '${aoaiGpt4ModelName}-${aoaiGpt4ModelVersion}'
-    model: {
-      format: 'OpenAI'
-      name: aoaiGpt4ModelName
-      version: aoaiGpt4ModelVersion
-    }
-    sku: {
-      name: 'GlobalStandard'
-      capacity: 30
-    }
-  }
-  {
-    name: aoaiEmbeddingsName
-    model: {
-      format: 'OpenAI'
-      name: aoaiEmbeddingsName
-      version: aoaiEmbeddingsVersion
-    }
-    sku: {
-      name: 'Standard'
-      capacity: 120
-    }
-  }
-]
 
 var openAiDeployments = [
   {
@@ -127,20 +100,30 @@ var openAiDeployments = [
     }
     sku: {
       name: 'Standard'
-      capacity: 120
+      capacity: 30
     }
   }
 ]
 
-// https://azure.github.io/Azure-Verified-Modules/specs/bicep/
-// https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-best-practices/resource-abbreviations
+var identityRoleAI = [{
+        roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
+        principalId: identity.outputs.principalId
+        principalType: 'ServicePrincipal'
+      }]
+var principalRoleAI = [{
+        roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
+        principalId: principalId
+        principalType: principalType
+      }]
+
+var aiRoleAssignments = empty(principalId) ? identityRoleAI : concat(identityRoleAI, principalRoleAI)
 module openAi 'br/public:avm/res/cognitive-services/account:0.8.0' = {
   name: 'openai'
   scope: resourceGroup
   params: {
     name: !empty(openAiServiceName) ? openAiServiceName : 'oai-${resourceToken}'
     location: location
-    tags: union(tags, { 'azd-service-name': 'aoai-${tags['azd-env-name']}' })
+    tags: tags
     kind: 'OpenAI'
     customSubDomainName: !empty(openAiServiceName) ? openAiServiceName : 'oai-${resourceToken}'
     sku: 'S0'
@@ -148,90 +131,93 @@ module openAi 'br/public:avm/res/cognitive-services/account:0.8.0' = {
     disableLocalAuth: false
     publicNetworkAccess: 'Enabled'
     networkAcls: {}
-    roleAssignments: [
-      {
-        roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
-        principalId: principalId
-        principalType: principalType
-      }
-      {
-        roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
-        principalId: webIdentity.outputs.principalId
-        principalType: 'ServicePrincipal'
-      }
-    ]
+    roleAssignments: aiRoleAssignments
   }
 }
 
+var identityRoleSpeech = [{
+        roleDefinitionIdOrName: 'Cognitive Services Speech User'
+        principalId: identity.outputs.principalId
+        principalType: 'ServicePrincipal'
+      }]
+var principalRoleSpeech = [{
+        roleDefinitionIdOrName: 'Cognitive Services Speech User'
+        principalId: principalId
+        principalType: principalType
+      }]
 
+var speechRoleAssignments = empty(principalId) ? identityRoleSpeech : concat(identityRoleSpeech, principalRoleSpeech)
 module speech 'br/public:avm/res/cognitive-services/account:0.8.0' = {
   name: 'speech'
   scope: resourceGroup
   params: {
     name: !empty(speechServiceName) ? speechServiceName : 'spch-${resourceToken}'
     location: location
-    tags: union(tags, { 'azd-service-name': 'speech-${tags['azd-env-name']}' })
+    tags: tags
     kind: 'SpeechServices'
     sku: 'S0'
     disableLocalAuth: false
     publicNetworkAccess: 'Enabled'
     networkAcls: {}
-    roleAssignments: [
-      {
-        roleDefinitionIdOrName: 'Cognitive Services Speech User'
-        principalId: principalId
-        principalType: principalType
-      }
-      {
-        roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
-        principalId: webIdentity.outputs.principalId
-        principalType: 'ServicePrincipal'
-      }
-    ]
+    roleAssignments: speechRoleAssignments
   }
 }
 
-module storageAccount './modules/storage/storageaccount.bicep' = {
-  name: 'storage'
-  scope: resourceGroup
+var logAnalyticsName = '${abbrs.operationalInsightsWorkspaces}${resourceToken}'
+module monitoring 'br/public:avm/ptn/azd/monitoring:0.1.0' = {
+    name: 'monitoringDeployment'
+    scope: resourceGroup
+    params: {
+      applicationInsightsName: 'insights-${resourceToken}2'
+      logAnalyticsName: logAnalyticsName
+      location: location
+    }
+}
+
+module registry 'modules/app/registry.bicep' = {
+  name: 'registry'
   params: {
+    identityName: identity.outputs.name
     location: location
     tags: tags
-    storageAccountName: !empty(storageAccountName) ? storageAccountName : 'stor${resourceToken}'
+    name: '${abbrs.containerRegistryRegistries}${resourceToken}'
   }
+  scope: resourceGroup
 }
 
-module monitoring 'modules/monitoring/monitor.bicep' = {
-  name: 'monitor'
+// If the deployment is driven through azd, use a simple image to speed up the deployment
+// If no AZD environment detected (environment Name present), use the public registry image
+var defaultImage = !empty(environmentName) ? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest' : 'soppublicregistry.azurecr.io/sopgenie:latest'  
+module app 'modules/app/containerapp.bicep' = {
+  name: 'app'
   scope: resourceGroup
   params: {
-    logAnalyticsName: '${abbrs.operationalInsightsWorkspaces}${resourceToken}'
-    resourceToken: resourceToken
+    name: '${abbrs.appContainerApps}app-${resourceToken}'
     tags: tags
+    logAnalyticsWorkspaceName: logAnalyticsName
+    identityId: identity.outputs.identityId
+    containerRegistryName: registry.outputs.name
+    exists: appExists
+    defaultBaseImage: defaultImage
+    env: {
+      AZURE_CLIENT_ID: identity.outputs.clientId
+      APPLICATIONINSIGHTS_CONNECTION_STRING: monitoring.outputs.applicationInsightsConnectionString
+      AZURE_OPENAI_ENDPOINT: openAi.outputs.endpoint
+      AZURE_OPENAI_DEPLOYMENT_NAME: openAiDeployments[0].name
+      AZURE_SPEECH_RESOURCE_ID: speech.outputs.resourceId
+      AZURE_SPEECH_REGION: speech.outputs.location
+    }
   }
-}
-
-module webApp 'modules/webapp/webapp.bicep' = {
-  name: 'webapp'
-  scope: resourceGroup
-  params: {
-    storageAccountName: storageAccount.outputs.storageAccountName
-    appInsightsConnectionString: monitoring.outputs.appInsightsConnectionString
-    tags: tags
-    resourceToken: resourceToken
-    azureOpenAIName: openAi.outputs.name
-    azureModelDeployment: deployments[0].name
-    azureSpeechName: speech.outputs.name
-    identityName: webIdentity.outputs.name
-  }
+  dependsOn: [registry, openAi, speech]
 }
 
 output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
 output AZURE_OPENAI_ACCOUNT_NAME string = openAi.outputs.name
-output AZURE_OPENAI_DEPLOYMENT_NAME string = deployments[0].name
+output AZURE_OPENAI_DEPLOYMENT_NAME string = openAiDeployments[0].name
 
 output AZURE_SPEECH_REGION   string = speech.outputs.location
 output AZURE_SPEECH_ACCOUNT_NAME  string = speech.outputs.name
 output AZURE_SPEECH_RESOURCE_ID string = speech.outputs.resourceId
 
-output AZURE_WEBAPP_ENDPOINT string = webApp.outputs.WEB_URI
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = registry.outputs.loginServer
+output AZURE_DOCKER_IMAGE_NAME string = app.outputs.image
