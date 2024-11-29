@@ -43,12 +43,11 @@ Quick deploy
 </h2>
 
 <h3>
-Deploy the infrastructure using azd (substitute switzerlandnorth with region relevant to you)
+Deploy the infrastructure using azd (substitute switzerlandnorth with the region relevant to you)
 </h3>
 
 ```sh
-azd env set AZURE_LOCATION 'switzerlandnorth'
-azd up
+AZURE_LOCATION=switzerlandnorth azd up
 ```
 
 **Note** 'Deploying services (azd deploy)' stage can take up to 15 min.
@@ -69,6 +68,11 @@ The env variables are read from the azd config file located at:
 
 ```
 .azure/<env_name>/.env
+```
+If azd has been executed, you can display those with the following command:
+
+```
+azd env get-values
 ```
 
 If azd has not been executed, the application will try to source the standard .env file.
