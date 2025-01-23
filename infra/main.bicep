@@ -73,7 +73,6 @@ module identity './modules/app/identity.bicep' = {
 // ------------------------
 // [ Array of OpenAI Model deployments ]
 param aoaiGpt4ModelName string= 'gpt-4o'
-// param aoaiGpt4ModelVersion string = '2024-05-13'
 param aoaiGpt4ModelVersion string = '2024-11-20'
 
 param aoaiEmbeddingsName string = 'text-embedding-ada-002'
@@ -89,7 +88,7 @@ var openAiDeployments = [
     }
     sku: {
       name: 'GlobalStandard'
-      capacity: 30
+      capacity: 40
     }
   }
   {
@@ -101,7 +100,7 @@ var openAiDeployments = [
     }
     sku: {
       name: 'Standard'
-      capacity: 30
+      capacity: 40
     }
   }
 ]
