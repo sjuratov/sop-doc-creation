@@ -1,29 +1,54 @@
-# V1
-FROM python:3.12-slim
+###############################################
+# Base stage (shared between build and final) #
+###############################################
 
-LABEL version="0.1"
+FROM python:3.12-slim AS base
 
-RUN groupadd -g 1001 app && \
-    useradd -u 1001 -g app -m app
+###############
+# Build stage #
+###############
 
-RUN mkdir /home/app/app /home/app/data /home/app/results
+FROM base AS builder
 
-COPY requirements.txt /home/app/app
-COPY streamlit_app.py /home/app/app
-COPY helpers.py /home/app/app
-COPY .streamlit /home/app/app
+## Install and configure UV, see https://docs.astral.sh/uv/ for more information
 
-# Install pip requirements
-WORKDIR /home/app/app
-RUN python -m pip install -r requirements.txt
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-RUN chown -R app:app /home/app
+ENV UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1 \
+    UV_PROJECT_ENVIRONMENT=/app/app/.venv
+
+WORKDIR /app/app/
+
+COPY uv.lock pyproject.toml /app/app/
+RUN uv sync \
+    --frozen \
+    --no-dev \
+    --no-install-workspace \
+    --no-editable \
+    --all-packages
+
+COPY *.py .streamlit /app/app/
+
+###############
+# Final image #
+###############
+
+FROM base
+
+LABEL version="0.2"
+
+RUN groupadd -r app
+RUN useradd -r -d /app -g app -N app
+RUN mkdir /app/ /app/data/ /app/results/
+
+COPY --from=builder --chown=app:app /app /app
+RUN chown -R app:app /app
+WORKDIR /app/app
+USER app
 
 EXPOSE 8501
-# HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
 
-USER app
-WORKDIR /home/app/app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENTRYPOINT ["streamlit", "run", "/home/app/app/streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+ENTRYPOINT ["/app/app/.venv/bin/streamlit", "run", "/app/app/streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
