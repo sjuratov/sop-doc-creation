@@ -16,11 +16,11 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 ENV UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
-    UV_PROJECT_ENVIRONMENT=/app/app/.venv
+    UV_PROJECT_ENVIRONMENT=/home/app/app/.venv
 
-WORKDIR /app/app/
+WORKDIR /home/app/app/
 
-COPY uv.lock pyproject.toml /app/app/
+COPY uv.lock pyproject.toml /home/app/app/
 RUN uv sync \
     --frozen \
     --no-dev \
@@ -28,7 +28,7 @@ RUN uv sync \
     --no-editable \
     --all-packages
 
-COPY *.py .streamlit /app/app/
+COPY *.py .streamlit /home/app/app/
 
 ###############
 # Final image #
@@ -39,16 +39,16 @@ FROM base
 LABEL version="0.2"
 
 RUN groupadd -r app
-RUN useradd -r -d /app -g app -N app
-RUN mkdir /app/ /app/data/ /app/results/
+RUN useradd -r -d /home/app -g app -N app
+RUN mkdir /home/app/ /home/app/data/ /home/app/results/
 
-COPY --from=builder --chown=app:app /app /app
-RUN chown -R app:app /app
-WORKDIR /app/app
+COPY --from=builder --chown=app:app /home/app /home/app
+RUN chown -R app:app /home/app
+WORKDIR /home/app/app
 USER app
 
 EXPOSE 8501
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENTRYPOINT ["/app/app/.venv/bin/streamlit", "run", "/app/app/streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+ENTRYPOINT ["/home/app/app/.venv/bin/streamlit", "run", "/home/app/app/streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
