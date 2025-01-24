@@ -32,6 +32,8 @@ Prerequisites
 
 - Install [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd)
 
+- Install [Python UV package manager](https://docs.astral.sh/uv/getting-started/installation/)
+
 - On Windows install the [Platform PowerShell](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-windows?view=powershell-7.4)
 
     - **Note** You MUST install Platform PowerShell; Windows PowerShell is not sufficient.
@@ -105,5 +107,6 @@ Run application
 
 ```
 cd src/frontend
-streamlit run streamlit_app.py
+uv sync
+./.venv/bin/streamlit run streamlit_app.py
 ```
