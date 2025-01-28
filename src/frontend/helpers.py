@@ -540,6 +540,7 @@ def checklist_docx_file(video_file, json_data, RESULTS_DIR, nb_images_per_step=3
         title = str(step['Title']).upper()
         summary = step['Summary']
         keywords = step['Keywords']
+        audio_transcript = step['Audio Transcript']
         offset_secs = step['Offset_in_secs']
         duration = round(step['Offset_in_secs'] - duration, 3)
 
@@ -548,6 +549,7 @@ def checklist_docx_file(video_file, json_data, RESULTS_DIR, nb_images_per_step=3
         doc.add_paragraph("")
         doc.add_paragraph(f"Summary: {summary}")
         doc.add_paragraph(f"Keywords: {keywords}")
+        doc.add_paragraph(f"Audio Transcript: {audio_transcript}")
         doc.add_paragraph(f"Offset in seconds: {offset_secs}")
         doc.add_paragraph(f"Duration in seconds: {duration}")
 

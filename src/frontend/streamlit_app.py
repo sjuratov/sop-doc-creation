@@ -120,6 +120,7 @@ def main():
         - Title: Generate a simple summary of the step
         - Summary: Generate a summary of the step in 2 or 3 lines
         - Keywords: generate some keywords to explain the step
+        - Audio Transcript: Provide an audio transcript of the step
         - Offset: offset
         - Offset_in_secs: offset in seconds
 
@@ -135,6 +136,7 @@ def main():
                         "purpose",
                         "scope"
                     ],
+                    "Audio Transcript": "Provide an audio transcript of this step.",
                     "Offset": 5900000,
                     "Offset_in_secs": 0.59
                 },
@@ -147,6 +149,7 @@ def main():
                         "materials",
                         "setup"
                     ],
+                    "Audio Transcript": "Provide an audio transcript of this step.",
                     "Offset": 183300000,
                     "Offset_in_secs": 18.33
                 }
